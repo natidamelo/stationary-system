@@ -1,7 +1,7 @@
 export default () => ({
   port: parseInt(process.env.PORT || '3000', 10),
   database: {
-    url: process.env.MONGODB_URI || process.env.DATABASE_URL || process.env.DB_URL || 'mongodb://localhost:27017/stationery_management',
+    url: process.env.DATABASE_URL || process.env.MONGODB_URI || process.env.DB_URL || 'mongodb://localhost:27017/stationery_management',
   },
   jwt: {
     secret: process.env.JWT_SECRET || 'change-me-in-production',
