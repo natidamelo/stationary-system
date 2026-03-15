@@ -116,9 +116,9 @@ export default function Reception() {
       if (barcodeTimeoutRef.current) {
         clearTimeout(barcodeTimeoutRef.current);
       }
-      if (codeReaderRef.current && typeof codeReaderRef.current.reset === 'function') {
+      if (codeReaderRef.current) {
         try {
-          codeReaderRef.current.reset();
+          (codeReaderRef.current as any).reset?.();
         } catch (e) {
           // Ignore reset errors during cleanup
         }
@@ -132,9 +132,7 @@ export default function Reception() {
       setCameraScanning(false);
       if (codeReaderRef.current) {
         try {
-          if (typeof codeReaderRef.current.reset === 'function') {
-            codeReaderRef.current.reset();
-          }
+          (codeReaderRef.current as any).reset?.();
         } catch (e) {
           // Ignore reset errors when closing
         }
@@ -314,8 +312,8 @@ export default function Reception() {
                 // ignore
               }
               
-              if (reader && typeof reader.reset === 'function') {
-                try { reader.reset(); } catch (e) { /* ignore */ }
+              if (reader) {
+                try { (reader as any).reset?.(); } catch (e) { /* ignore */ }
               }
               
               handleBarcodeScan(barcodeText).finally(() => {
@@ -392,9 +390,9 @@ export default function Reception() {
 
     return () => {
       clearTimeout(timer);
-      if (codeReaderRef.current && typeof codeReaderRef.current.reset === 'function') {
+      if (codeReaderRef.current) {
         try {
-          codeReaderRef.current.reset();
+          (codeReaderRef.current as any).reset?.();
         } catch (e) {
           // Ignore reset errors during cleanup
         }
@@ -1066,7 +1064,7 @@ export default function Reception() {
         </DialogActions>
       </Dialog>
 
-      {dashboard?.lowStockItems?.length > 0 && (
+      {(dashboard?.lowStockItems?.length ?? 0) > 0 && (
         <Card variant="outlined">
           <CardContent>
             <Typography variant="h6" gutterBottom>Low stock alert</Typography>
@@ -1081,7 +1079,7 @@ export default function Reception() {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {dashboard.lowStockItems.map((i) => (
+                  {dashboard?.lowStockItems?.map((i) => (
                     <TableRow key={i.sku}>
                       <TableCell>{i.sku}</TableCell>
                       <TableCell>{i.name}</TableCell>

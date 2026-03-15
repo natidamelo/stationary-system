@@ -4,8 +4,6 @@ import {
   Typography,
   Button,
   TextField,
-  Card,
-  CardContent,
   Table,
   TableBody,
   TableCell,
@@ -28,6 +26,7 @@ type Service = {
   description?: string;
   costPrice: number;
   sellingPrice: number;
+  price?: number;
   isActive: boolean;
 };
 

@@ -213,7 +213,7 @@ export default function Reports() {
   const loadService = () => {
     if (!showAdminReports) return;
     setLoadingService(true);
-    const empty: ServiceAnalytics = { period, totalDistributions: 0, byDepartment: [], topItems: [] };
+    const empty: ServiceAnalytics = { period, totalDistributions: 0, totalItemsIssued: 0, uniqueRecipients: 0, avgItemsPerDistribution: 0, byDepartment: [], topItems: [], trend: [], recentDistributions: [] };
     api.get<ServiceAnalytics>(`/reports/service-analytics?period=${period}`)
       .then((r) => setServiceAnalytics(r.data ?? empty))
       .catch(() => setServiceAnalytics(empty))

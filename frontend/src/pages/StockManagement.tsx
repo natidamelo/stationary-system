@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -13,7 +13,6 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Paper,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -87,7 +86,6 @@ export default function StockManagement() {
   const [categories, setCategories] = useState<Array<{ id: string; name: string }>>([]);
   
   // Distribution data
-  const [distributions, setDistributions] = useState<Distribution[]>([]);
   const [users, setUsers] = useState<Array<{ id: string; fullName: string }>>([]);
   
   // Filters
@@ -389,7 +387,7 @@ export default function StockManagement() {
 
       {/* Summary Cards */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
-        {summaryCards.map((card, i) => (
+        {summaryCards.map((card) => (
           <Grid size={{ xs: 6, sm: 3 }} key={card.label} sx={{ display: 'flex' }}>
             <Card
               sx={{
