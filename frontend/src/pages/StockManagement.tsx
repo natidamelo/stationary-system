@@ -86,6 +86,7 @@ export default function StockManagement() {
   const [categories, setCategories] = useState<Array<{ id: string; name: string }>>([]);
   
   // Distribution data
+  const [distributions, setDists] = useState<Distribution[]>([]);
   const [users, setUsers] = useState<Array<{ id: string; fullName: string }>>([]);
   
   // Filters
@@ -103,6 +104,7 @@ export default function StockManagement() {
   const [issueForm, setIssueForm] = useState({ issuedToUserId: '', department: '', notes: '', lines: [{ itemId: '', quantity: 1 }] });
   const [itemForm, setItemForm] = useState({ sku: '', name: '', categoryId: '', unit: 'unit', reorderLevel: 0, price: 0, sellPrice: 0, barcode: '' });
   const [editStockForm, setEditStockForm] = useState({ itemId: '', quantity: 0, costPrice: 0, sellPrice: 0, reorderLevel: 0 });
+  const [error, setError] = useState<string | null>(null);
 
   const printBarcode = (item: StockItem) => {
     const barcode = item.barcode || item.sku;
@@ -182,18 +184,20 @@ export default function StockManagement() {
 
   const loadData = async () => {
     try {
+      setLoading(true);
+      setError(null);
       const [lowStockRes, movementsRes, distributionsRes, itemsRes, usersRes, categoriesRes] = await Promise.all([
-        api.get<LowStock[]>('/inventory/low-stock').catch(() => ({ data: [] })),
-        api.get<Movement[]>('/inventory/movements?limit=50').catch(() => ({ data: [] })),
-        api.get<Distribution[]>('/distribution').catch(() => ({ data: [] })),
-        api.get<Array<{ id: string; name: string; sku: string; category?: { id: string; name: string }; unit: string; reorderLevel: number; price: number; costPrice?: number; barcode?: string; isActive: boolean }>>('/items').catch(() => ({ data: [] })),
-        api.get<Array<{ id: string; fullName: string }>>('/users').catch(() => ({ data: [] })),
-        api.get<Array<{ id: string; name: string }>>('/categories').catch(() => ({ data: [] })),
+        api.get<LowStock[]>('/inventory/low-stock'),
+        api.get<Movement[]>('/inventory/movements?limit=50'),
+        api.get<Distribution[]>('/distribution'),
+        api.get<Array<any>>('/items'),
+        api.get<Array<{ id: string; fullName: string }>>('/users'),
+        api.get<Array<{ id: string; name: string }>>('/categories'),
       ]);
 
       setLowStock(lowStockRes.data);
       setMovements(movementsRes.data);
-      setDistributions(distributionsRes.data);
+      setDists(distributionsRes.data);
       setItems(itemsRes.data);
       setUsers(usersRes.data);
       setCategories(categoriesRes.data);
@@ -244,9 +248,14 @@ export default function StockManagement() {
 
       setStockItems(stockItemsWithBalance);
       
-      // Expand all categories by default
+      // Expand all categories by default, always include Uncategorized
       const categoryNames = new Set(stockItemsWithBalance.map(item => item.category?.name || 'Uncategorized'));
+      categoryNames.add('Uncategorized');
       setExpandedCategories(categoryNames);
+
+      if (stockItemsWithBalance.length === 0) {
+        console.warn('StockManagement: No items found in /items response');
+      }
 
       // Calculate summary
       const totalItems = itemsRes.data.length;
@@ -262,8 +271,9 @@ export default function StockManagement() {
         recentDistributions,
         recentMovements,
       });
-    } catch (error) {
-      console.error('Failed to load data:', error);
+    } catch (error: any) {
+      console.error('Failed to load stock data:', error);
+      setError(error.response?.data?.message || 'Failed to connect to the server. Please check your internet or backend connection.');
     } finally {
       setLoading(false);
     }
@@ -384,6 +394,19 @@ export default function StockManagement() {
           </Box>
         )}
       </Box>
+      
+      {error && (
+        <Card sx={{ mb: 3, bgcolor: '#fff1f2', border: '1px solid #fda4af' }}>
+          <CardContent sx={{ py: 2 }}>
+            <Typography variant="body2" color="#be123c" fontWeight={600}>
+               ⚠️ Error: {error}
+            </Typography>
+            <Button size="small" variant="text" onClick={loadData} sx={{ mt: 1, color: '#be123c', textTransform: 'none' }}>
+              Try Again
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Summary Cards */}
       <Grid container spacing={2} sx={{ mb: 3 }}>

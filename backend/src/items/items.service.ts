@@ -15,10 +15,23 @@ export class ItemsService {
   private toItem(doc: any) {
     if (!doc) return null;
     const o = doc.toObject ? doc.toObject() : doc;
-    const cat = (o as any).categoryId;
-    const category = cat && typeof cat === 'object' && cat.name
-      ? { id: cat._id?.toString(), name: cat.name }
-      : (o.categoryId ? { id: o.categoryId.toString(), name: null } : undefined);
+    
+    // Safely handle category population
+    let category = undefined;
+    if (o.categoryId) {
+      if (typeof o.categoryId === 'object' && o.categoryId.name) {
+        category = { 
+          id: o.categoryId._id?.toString() || o.categoryId.id?.toString(), 
+          name: o.categoryId.name 
+        };
+      } else {
+        category = {
+          id: o.categoryId.toString(),
+          name: null
+        };
+      }
+    }
+
     return {
       id: (o._id || doc._id)?.toString(),
       sku: o.sku,
@@ -26,12 +39,12 @@ export class ItemsService {
       categoryId: (o.categoryId?._id || o.categoryId)?.toString?.() || null,
       category,
       unit: o.unit,
-      reorderLevel: o.reorderLevel,
-      price: o.price,
+      reorderLevel: o.reorderLevel ?? 0,
+      price: o.price ?? 0,
       costPrice: o.costPrice ?? 0,
       imageUrl: o.imageUrl,
-      barcode: o.barcode || o.sku, // Use SKU as fallback if barcode not set
-      isActive: o.isActive,
+      barcode: o.barcode || o.sku,
+      isActive: o.isActive !== false, // default true
     };
   }
 
@@ -47,20 +60,26 @@ export class ItemsService {
   }
 
   async findAll(filters?: { categoryId?: string; search?: string }) {
-    try {
-      const q: any = {};
-      if (filters?.categoryId) q.categoryId = new Types.ObjectId(filters.categoryId);
-      if (filters?.search?.trim()) {
-        q.$or = [
-          { name: new RegExp(filters.search.trim(), 'i') },
-          { sku: new RegExp(filters.search.trim(), 'i') },
-        ];
-      }
-      const docs = await this.model.find(q).populate('categoryId').sort({ name: 1 }).lean();
-      return docs.map((d: any) => this.toItem(d)).filter(Boolean);
-    } catch {
-      return [];
+    const q: any = {};
+    
+    if (filters?.categoryId && Types.ObjectId.isValid(filters.categoryId)) {
+      q.categoryId = new Types.ObjectId(filters.categoryId);
     }
+    
+    if (filters?.search?.trim()) {
+      const searchRegex = new RegExp(filters.search.trim(), 'i');
+      q.$or = [
+        { name: searchRegex },
+        { sku: searchRegex },
+      ];
+    }
+    
+    const docs = await this.model.find(q)
+      .populate('categoryId')
+      .sort({ name: 1 })
+      .lean();
+      
+    return docs.map((d: any) => this.toItem(d)).filter(Boolean);
   }
 
   async findOne(id: string) {

@@ -33,11 +33,13 @@ export class ItemsController {
   }
 
   @Get()
-  list(
+  async list(
     @Query('categoryId') categoryId?: string,
     @Query('search') search?: string,
   ) {
-    return this.items.findAll({ categoryId, search });
+    const result = await this.items.findAll({ categoryId, search });
+    console.log(`[ItemsController] GET /api/items - found ${result.length} items`);
+    return result;
   }
 
   @Get('barcode/:barcode')
