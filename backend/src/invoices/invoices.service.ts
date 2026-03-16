@@ -13,8 +13,8 @@ export class InvoicesService {
     private saleModel: Model<SaleDocument>,
   ) { }
 
-  private async nextInvoiceNumber(): Promise<string> {
-    const last = await this.invoiceModel.findOne().sort({ issueDate: -1 }).lean();
+  private async nextInvoiceNumber(tenantId: string): Promise<string> {
+    const last = await this.invoiceModel.findOne({ tenantId: new Types.ObjectId(tenantId) }).sort({ issueDate: -1 }).lean();
     const num = last
       ? parseInt(String((last as any).invoiceNumber).replace(/\D/g, ''), 10) + 1
       : 1;
@@ -40,38 +40,40 @@ export class InvoicesService {
       status: o.status || 'draft',
       notes: o.notes,
       createdAt: o.createdAt,
+      tenantId: o.tenantId?.toString(),
     };
   }
 
-  async findAll(): Promise<any[]> {
+  async findAll(tenantId: string): Promise<any[]> {
     const docs = await this.invoiceModel
-      .find()
+      .find({ tenantId: new Types.ObjectId(tenantId) })
       .populate('saleId', 'saleNumber soldAt totalAmount amountPaid')
       .sort({ issueDate: -1 })
       .lean();
     return docs.map((d: any) => this.toInvoice(d));
   }
 
-  async findOne(id: string): Promise<any> {
+  async findOne(id: string, tenantId: string): Promise<any> {
     const doc = await this.invoiceModel
-      .findById(id)
+      .findOne({ _id: new Types.ObjectId(id), tenantId: new Types.ObjectId(tenantId) })
       .populate('saleId', 'saleNumber soldAt totalAmount amountPaid')
       .lean();
     return this.toInvoice(doc);
   }
 
-  async createFromSale(saleId: string, options?: { customerEmail?: string; customerAddress?: string }): Promise<any> {
+  async createFromSale(saleId: string, tenantId: string, options?: { customerEmail?: string; customerAddress?: string }): Promise<any> {
+    const tid = new Types.ObjectId(tenantId);
     const sale = await this.saleModel
-      .findById(saleId)
+      .findOne({ _id: new Types.ObjectId(saleId), tenantId: tid })
       .populate('lines.itemId', 'name sku')
       .populate('lines.serviceId', 'name')
       .lean();
     if (!sale) throw new BadRequestException('Sale not found');
-    const existing = await this.invoiceModel.findOne({ saleId: new Types.ObjectId(saleId) }).lean();
+    const existing = await this.invoiceModel.findOne({ saleId: new Types.ObjectId(saleId), tenantId: tid }).lean();
     if (existing) {
       return this.toInvoice(
         await this.invoiceModel
-          .findById(existing._id)
+          .findOne({ _id: existing._id, tenantId: tid })
           .populate('saleId', 'saleNumber soldAt totalAmount amountPaid')
           .lean(),
       );
@@ -86,7 +88,7 @@ export class InvoicesService {
     }));
     const totalAmount = Number(o.totalAmount ?? 0);
     const amountPaid = Number(o.amountPaid ?? 0);
-    const invoiceNumber = await this.nextInvoiceNumber();
+    const invoiceNumber = await this.nextInvoiceNumber(tenantId);
     const created = await this.invoiceModel.create({
       invoiceNumber,
       saleId: new Types.ObjectId(saleId),
@@ -99,23 +101,25 @@ export class InvoicesService {
       amountPaid,
       status: amountPaid >= totalAmount ? 'paid' : 'sent',
       notes: o.notes,
+      tenantId: tid,
     });
     return this.toInvoice(
       await this.invoiceModel
-        .findById(created._id)
+        .findOne({ _id: created._id, tenantId: tid })
         .populate('saleId', 'saleNumber soldAt totalAmount amountPaid')
         .lean(),
     );
   }
 
-  async markPaid(id: string, amountPaid?: number): Promise<any> {
-    const doc = await this.invoiceModel.findById(id);
+  async markPaid(id: string, tenantId: string, amountPaid?: number): Promise<any> {
+    const tid = new Types.ObjectId(tenantId);
+    const doc = await this.invoiceModel.findOne({ _id: new Types.ObjectId(id), tenantId: tid });
     if (!doc) throw new BadRequestException('Invoice not found');
     const paid = amountPaid !== undefined ? amountPaid : doc.totalAmount;
     await this.invoiceModel.updateOne(
-      { _id: doc._id },
+      { _id: doc._id, tenantId: tid },
       { $set: { amountPaid: paid, status: paid >= doc.totalAmount ? 'paid' : 'partial' } },
     );
-    return this.findOne(id);
+    return this.findOne(id, tenantId);
   }
 }

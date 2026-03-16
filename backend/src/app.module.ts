@@ -24,6 +24,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { AuditLogModule } from './audit-log/audit-log.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { TenantsModule } from './tenants/tenants.module';
 
 @Module({
   imports: [
@@ -55,6 +56,7 @@ import { AppService } from './app.service';
     InvoicesModule,
     NotificationsModule,
     AuditLogModule,
+    TenantsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -5,6 +5,8 @@ import { RolesGuard } from '../guards/roles.guard';
 import { Roles } from '../decorators/roles.decorator';
 import { RoleEnum } from '../common/enums';
 import { AuditLogService } from './audit-log.service';
+import { CurrentUser } from '../decorators/current-user.decorator';
+import { UserPayload } from '../common/user.types';
 
 @ApiTags('audit-log')
 @ApiBearerAuth()
@@ -16,11 +18,12 @@ export class AuditLogController {
 
     @Get()
     findAll(
+        @CurrentUser() user: UserPayload,
         @Query('entity') entity?: string,
         @Query('limit') limit = '100',
         @Query('skip') skip = '0',
     ) {
-        return this.auditService.findAll({
+        return this.auditService.findAll(user.tenantId, {
             entity,
             limit: Number(limit),
             skip: Number(skip),

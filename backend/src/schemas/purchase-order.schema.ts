@@ -20,6 +20,9 @@ const PurchaseOrderLineSchema = SchemaFactory.createForClass(PurchaseOrderLineDo
 
 @Schema({ collection: 'purchase_orders' })
 export class PurchaseOrderDocument extends Document {
+  @Prop({ type: Types.ObjectId, ref: 'TenantDocument' })
+  tenantId: Types.ObjectId;
+
   @Prop({ required: true, unique: true })
   poNumber: string;
 

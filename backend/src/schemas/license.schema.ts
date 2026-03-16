@@ -5,6 +5,9 @@ export type LicenseStatus = 'active' | 'expired' | 'suspended';
 
 @Schema({ collection: 'licenses' })
 export class LicenseDocument extends Document {
+  @Prop({ type: Types.ObjectId, ref: 'TenantDocument' })
+  tenantId: Types.ObjectId;
+
   @Prop({ required: true, unique: true })
   licenseKey: string;
 

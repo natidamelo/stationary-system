@@ -15,14 +15,13 @@ export class InventoryService {
     private itemModel: Model<ItemDocument>,
   ) {}
 
-  async getBalance(itemId: string): Promise<number> {
+  async getBalance(itemId: string, tenantId: string): Promise<number> {
     const id = new Types.ObjectId(itemId);
-    const docs = await this.movementModel.find({ itemId: id }).lean();
+    const tid = new Types.ObjectId(tenantId);
+    const docs = await this.movementModel.find({ itemId: id, tenantId: tid }).lean();
     let balance = 0;
     for (const m of docs) {
-      if (m.type === StockMovementType.PURCHASE || m.type === StockMovementType.RETURN)
-        balance += m.quantity;
-      else if (m.type === 'adjustment')
+      if (m.type === StockMovementType.PURCHASE || m.type === StockMovementType.RETURN || m.type === 'adjustment')
         balance += m.quantity;
       else
         balance -= m.quantity;
@@ -30,12 +29,13 @@ export class InventoryService {
     return balance;
   }
 
-  async getBalancesForItems(itemIds: string[]): Promise<Record<string, number>> {
+  async getBalancesForItems(itemIds: string[], tenantId: string): Promise<Record<string, number>> {
     const out: Record<string, number> = {};
     for (const id of itemIds) out[id] = 0;
     if (!itemIds.length) return out;
+    const tid = new Types.ObjectId(tenantId);
     const ids = itemIds.map((i) => new Types.ObjectId(i));
-    const docs = await this.movementModel.find({ itemId: { $in: ids } }).lean();
+    const docs = await this.movementModel.find({ itemId: { $in: ids }, tenantId: tid }).lean();
     for (const m of docs) {
       const id = (m.itemId as Types.ObjectId).toString();
       if (!(id in out)) continue;
@@ -55,13 +55,16 @@ export class InventoryService {
       reference?: string;
       referenceId?: string;
       notes?: string;
-      performedBy?: { id: string };
+      performedBy?: { id: string; tenantId: string };
       session?: ClientSession;
     },
   ) {
-    const item = await this.itemModel.findById(itemId).lean();
+    const tenantId = opts.performedBy?.tenantId;
+    if (!tenantId) throw new BadRequestException('Tenant ID required for stock movement');
+    const tid = new Types.ObjectId(tenantId);
+    const item = await this.itemModel.findOne({ _id: new Types.ObjectId(itemId), tenantId: tid }).lean();
     if (!item) throw new NotFoundException('Item not found');
-    const current = await this.getBalance(itemId);
+    const current = await this.getBalance(itemId, tenantId);
     const isIn = type === StockMovementType.PURCHASE || type === StockMovementType.RETURN;
     const delta = type === StockMovementType.ADJUSTMENT ? quantity : isIn ? quantity : -quantity;
     const newBalance = current + delta;
@@ -78,6 +81,7 @@ export class InventoryService {
           referenceId: opts.referenceId,
           notes: opts.notes,
           performedById: opts.performedBy?.id ? new Types.ObjectId(opts.performedBy.id) : undefined,
+          tenantId: tid,
         },
       ],
       createOpts,
@@ -101,19 +105,21 @@ export class InventoryService {
       reference: o.reference,
       notes: o.notes,
       createdAt: o.createdAt,
+      tenantId: o.tenantId?.toString(),
     };
   }
 
-  async getMovements(itemId?: string, limit = 50) {
-    const q: any = {};
+  async getMovements(tenantId: string, itemId?: string, limit = 50) {
+    const q: any = { tenantId: new Types.ObjectId(tenantId) };
     if (itemId) q.itemId = new Types.ObjectId(itemId);
     const docs = await this.movementModel.find(q).populate('itemId').sort({ createdAt: -1 }).limit(limit).lean();
     return docs.map((d: any) => this.toMovement(d));
   }
 
-  async getLowStockItems() {
-    const items = await this.itemModel.find({ isActive: true }).populate('categoryId').lean();
-    const balances = await this.getBalancesForItems(items.map((i: any) => i._id.toString()));
+  async getLowStockItems(tenantId: string) {
+    const tid = new Types.ObjectId(tenantId);
+    const items = await this.itemModel.find({ isActive: true, tenantId: tid }).populate('categoryId').lean();
+    const balances = await this.getBalancesForItems(items.map((i: any) => i._id.toString()), tenantId);
     return items
       .filter((i: any) => {
         const stock = balances[i._id.toString()];

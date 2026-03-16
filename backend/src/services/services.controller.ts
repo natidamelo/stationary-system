@@ -16,6 +16,8 @@ import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { RolesGuard } from '../guards/roles.guard';
 import { Roles } from '../decorators/roles.decorator';
 import { RoleEnum } from '../common/enums';
+import { CurrentUser } from '../decorators/current-user.decorator';
+import { UserPayload } from '../common/user.types';
 
 @ApiTags('services')
 @ApiBearerAuth()
@@ -27,31 +29,31 @@ export class ServicesController {
   @Post()
   @UseGuards(RolesGuard)
   @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER)
-  create(@Body() dto: CreateServiceDto) {
-    return this.services.create(dto);
+  create(@Body() dto: CreateServiceDto, @CurrentUser() user: UserPayload) {
+    return this.services.create(dto, user.tenantId);
   }
 
   @Get()
-  list() {
-    return this.services.findAll();
+  list(@CurrentUser() user: UserPayload) {
+    return this.services.findAll(user.tenantId);
   }
 
   @Get(':id')
-  get(@Param('id') id: string) {
-    return this.services.findOne(id);
+  get(@Param('id') id: string, @CurrentUser() user: UserPayload) {
+    return this.services.findOne(id, user.tenantId);
   }
 
   @Put(':id')
   @UseGuards(RolesGuard)
   @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER)
-  update(@Param('id') id: string, @Body() dto: UpdateServiceDto) {
-    return this.services.update(id, dto);
+  update(@Param('id') id: string, @Body() dto: UpdateServiceDto, @CurrentUser() user: UserPayload) {
+    return this.services.update(id, user.tenantId, dto);
   }
 
   @Delete(':id')
   @UseGuards(RolesGuard)
   @Roles(RoleEnum.ADMIN)
-  remove(@Param('id') id: string) {
-    return this.services.remove(id);
+  remove(@Param('id') id: string, @CurrentUser() user: UserPayload) {
+    return this.services.remove(id, user.tenantId);
   }
 }

@@ -7,6 +7,7 @@ import {
   Body,
   Param,
   UseGuards,
+  Request,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { SuppliersService } from './suppliers.service';
@@ -27,31 +28,31 @@ export class SuppliersController {
   @Post()
   @UseGuards(RolesGuard)
   @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.INVENTORY_CLERK)
-  create(@Body() dto: CreateSupplierDto) {
-    return this.suppliers.create(dto);
+  create(@Body() dto: CreateSupplierDto, @Request() req: any) {
+    return this.suppliers.create(dto, req.user.tenantId);
   }
 
   @Get()
-  list() {
-    return this.suppliers.findAll();
+  list(@Request() req: any) {
+    return this.suppliers.findAll(req.user.tenantId);
   }
 
   @Get(':id')
-  get(@Param('id') id: string) {
-    return this.suppliers.findOne(id);
+  get(@Param('id') id: string, @Request() req: any) {
+    return this.suppliers.findOne(id, req.user.tenantId);
   }
 
   @Put(':id')
   @UseGuards(RolesGuard)
   @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.INVENTORY_CLERK)
-  update(@Param('id') id: string, @Body() dto: UpdateSupplierDto) {
-    return this.suppliers.update(id, dto);
+  update(@Param('id') id: string, @Body() dto: UpdateSupplierDto, @Request() req: any) {
+    return this.suppliers.update(id, dto, req.user.tenantId);
   }
 
   @Delete(':id')
   @UseGuards(RolesGuard)
   @Roles(RoleEnum.ADMIN)
-  remove(@Param('id') id: string) {
-    return this.suppliers.remove(id);
+  remove(@Param('id') id: string, @Request() req: any) {
+    return this.suppliers.remove(id, req.user.tenantId);
   }
 }

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { ItemDocument } from '../schemas/item.schema';
 import { SupplierDocument } from '../schemas/supplier.schema';
 import { PurchaseOrderDocument } from '../schemas/purchase-order.schema';
@@ -19,16 +19,17 @@ export class SearchService {
     private prModel: Model<PurchaseRequestDocument>,
   ) {}
 
-  async globalSearch(q: string) {
+  async globalSearch(tenantId: string, q: string) {
     if (!q?.trim() || q.trim().length < 2) {
       return { items: [], suppliers: [], purchaseOrders: [], purchaseRequests: [] };
     }
+    const tid = new Types.ObjectId(tenantId);
     const term = new RegExp(q.trim(), 'i');
     const [items, suppliers, purchaseOrders, purchaseRequests] = await Promise.all([
-      this.itemModel.find({ $or: [{ name: term }, { sku: term }] }).populate('categoryId').limit(20).lean(),
-      this.supplierModel.find({ $or: [{ name: term }, { contactPerson: term }] }).limit(20).lean(),
-      this.poModel.find({ poNumber: term }).populate('supplierId').limit(20).lean(),
-      this.prModel.find({ requestNumber: term }).limit(20).lean(),
+      this.itemModel.find({ tenantId: tid, $or: [{ name: term }, { sku: term }] }).populate('categoryId').limit(20).lean(),
+      this.supplierModel.find({ tenantId: tid, $or: [{ name: term }, { contactPerson: term }] }).limit(20).lean(),
+      this.poModel.find({ tenantId: tid, poNumber: term }).populate('supplierId').limit(20).lean(),
+      this.prModel.find({ tenantId: tid, requestNumber: term }).limit(20).lean(),
     ]);
     return {
       items: items.map((d: any) => ({ id: d._id.toString(), ...d, categoryId: d.categoryId?._id?.toString(), category: d.categoryId })),

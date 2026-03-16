@@ -13,12 +13,15 @@ import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 
+import { TenantsService } from '../tenants/tenants.service';
+
 @Injectable()
 export class AuthService {
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
     private licenseService: LicenseService,
+    private tenantsService: TenantsService,
   ) {}
 
   async validateUser(email: string, password: string) {
@@ -43,7 +46,7 @@ export class AuthService {
     // Dealer (developer) accounts can always log in, even if licenses are expired.
     // For all other roles we enforce license validation per computer.
     if (dto.computerId && roleName !== 'dealer') {
-      const licenseCheck = await this.licenseService.validateLicense(dto.computerId);
+      const licenseCheck = await this.licenseService.validateLicense(dto.computerId, user.tenantId || '');
       if (!licenseCheck.valid) {
         const isProduction = process.env.NODE_ENV === 'production';
         if (!isProduction) {
@@ -53,7 +56,7 @@ export class AuthService {
           throw new UnauthorizedException(licenseCheck.message || 'License validation failed');
         }
       } else {
-        const info = await this.licenseService.getLicenseInfo(dto.computerId);
+        const info = await this.licenseService.getLicenseInfo(dto.computerId, user.tenantId || '');
         license = info
           ? {
               expiryDate: info.expiryDate,
@@ -69,6 +72,7 @@ export class AuthService {
         sub: user.id,
         email: user.email,
         role: user.role?.name,
+        tenantId: user.tenantId,
       }),
       user: {
         id: user.id,
@@ -76,6 +80,7 @@ export class AuthService {
         fullName: user.fullName,
         department: user.department,
         role: user.role?.name,
+        tenantId: user.tenantId,
       },
       license,
     };
@@ -84,11 +89,19 @@ export class AuthService {
   async register(dto: RegisterDto) {
     const existing = await this.usersService.findByEmail(dto.email);
     if (existing) throw new BadRequestException('Email already registered');
+    
+    let tenantId = undefined;
+    if (dto.companyName) {
+      const tenant = await this.tenantsService.create({ name: dto.companyName });
+      tenantId = tenant._id.toString();
+    }
+
     const hashed = await bcrypt.hash(dto.password, 10);
     return this.usersService.create({
       ...dto,
       passwordHash: hashed,
       roleName: dto.roleName || 'employee',
+      tenantId,
     });
   }
 

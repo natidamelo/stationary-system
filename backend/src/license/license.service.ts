@@ -32,7 +32,7 @@ export class LicenseService {
     return formatLicenseKey(raw);
   }
 
-  async getLicenseInfo(computerId: string): Promise<{
+  async getLicenseInfo(computerId: string, tenantId: string): Promise<{
     valid: boolean;
     message?: string;
     expiryDate?: Date;
@@ -40,8 +40,9 @@ export class LicenseService {
     customerName?: string;
     licenseKey?: string;
   } | null> {
+    const tid = new Types.ObjectId(tenantId);
     const license = await this.licenseModel
-      .findOne({ computerId, status: 'active' })
+      .findOne({ tenantId: tid, computerId, status: 'active' })
       .populate('customerId')
       .lean();
 
@@ -76,13 +77,14 @@ export class LicenseService {
     };
   }
 
-  async validateLicense(computerId: string): Promise<{ valid: boolean; message?: string }> {
+  async validateLicense(computerId: string, tenantId: string): Promise<{ valid: boolean; message?: string }> {
+    const tid = new Types.ObjectId(tenantId);
     // First-time setup: if no licenses exist, allow login (admin can create licenses)
-    const anyLicense = await this.licenseModel.countDocuments().lean();
+    const anyLicense = await this.licenseModel.countDocuments({ tenantId: tid }).lean();
     if (anyLicense === 0) return { valid: true };
 
     const license = await this.licenseModel
-      .findOne({ computerId, status: 'active' })
+      .findOne({ tenantId: tid, computerId, status: 'active' })
       .populate('customerId')
       .lean();
 
@@ -105,7 +107,7 @@ export class LicenseService {
     return { valid: true };
   }
 
-  async generateLicense(data: {
+  async generateLicense(tenantId: string, data: {
     customerId: string;
     computerId: string;
     startDate?: Date;
@@ -114,11 +116,12 @@ export class LicenseService {
     durationUnit?: 'day' | 'month' | 'year';
     expiryDate?: Date | string;
   }): Promise<{ licenseKey: string; licence: any }> {
-    const customer = await this.customerModel.findById(data.customerId).lean();
+    const tid = new Types.ObjectId(tenantId);
+    const customer = await this.customerModel.findOne({ _id: new Types.ObjectId(data.customerId), tenantId: tid }).lean();
     if (!customer) throw new NotFoundException('Customer not found');
 
     const existing = await this.licenseModel
-      .findOne({ computerId: data.computerId, status: 'active' })
+      .findOne({ tenantId: tid, computerId: data.computerId, status: 'active' })
       .lean();
     if (existing) {
       throw new ConflictException(
@@ -171,6 +174,7 @@ export class LicenseService {
     }
 
     const created = await this.licenseModel.create({
+      tenantId: tid,
       licenseKey,
       customerId: new Types.ObjectId(data.customerId),
       computerId: data.computerId,
@@ -190,7 +194,7 @@ export class LicenseService {
     };
   }
 
-  async updateLicense(data: {
+  async updateLicense(tenantId: string, data: {
     id: string;
     customerId: string;
     computerId: string;
@@ -199,13 +203,15 @@ export class LicenseService {
     durationUnit?: 'day' | 'month' | 'year';
     expiryDate?: Date | string;
   }): Promise<any> {
-    const license = await this.licenseModel.findById(data.id).lean();
+    const tid = new Types.ObjectId(tenantId);
+    const license = await this.licenseModel.findOne({ _id: new Types.ObjectId(data.id), tenantId: tid }).lean();
     if (!license) throw new NotFoundException('License not found');
 
     // If computer ID is changing, ensure there is no other active license on that computer.
     if (data.computerId && data.computerId !== license.computerId) {
       const existing = await this.licenseModel
         .findOne({
+          tenantId: tid,
           computerId: data.computerId,
           status: 'active',
           _id: { $ne: license._id },
@@ -221,16 +227,12 @@ export class LicenseService {
     const startDate = license.startDate;
     let expiryDate: Date;
     
-    console.log('Updating license - startDate:', startDate);
-    console.log('Updating license - received data:', { duration: data.duration, durationUnit: data.durationUnit, expiryDate: data.expiryDate });
-    
     // If expiryDate is provided directly, use it
     if (data.expiryDate) {
       expiryDate = new Date(data.expiryDate);
       if (isNaN(expiryDate.getTime())) {
         throw new BadRequestException('Invalid expiry date provided');
       }
-      console.log('Using provided expiry date:', expiryDate);
     } 
     // If duration and durationUnit are provided, calculate expiry date
     else if (data.duration !== undefined && data.durationUnit && data.duration > 0) {
@@ -241,8 +243,6 @@ export class LicenseService {
         throw new BadRequestException('Duration must be a positive number');
       }
       
-      console.log('Calculating expiry from startDate:', startDate, 'with duration:', duration, data.durationUnit);
-      
       if (data.durationUnit === 'day') {
         expiryDate.setDate(expiryDate.getDate() + Math.floor(duration));
       } else if (data.durationUnit === 'month') {
@@ -252,8 +252,6 @@ export class LicenseService {
       } else {
         throw new BadRequestException('Invalid duration unit. Must be day, month, or year');
       }
-      
-      console.log('Calculated expiry date:', expiryDate);
     }
     // Fallback to durationYears for backward compatibility
     else if (data.durationYears !== undefined) {
@@ -269,9 +267,7 @@ export class LicenseService {
       throw new BadRequestException('Either expiryDate or duration with durationUnit must be provided');
     }
 
-    console.log('Saving expiry date to database:', expiryDate);
-    
-    const updateResult = await this.licenseModel.updateOne(
+    await this.licenseModel.updateOne(
       { _id: license._id },
       {
         $set: {
@@ -283,26 +279,24 @@ export class LicenseService {
       },
     );
     
-    console.log('Database update result:', updateResult);
-
     const updated = await this.licenseModel
       .findById(license._id)
       .populate('customerId')
       .lean();
     
-    const result = this.toLicense(updated);
-    console.log('Returning updated license:', result);
-    return result;
+    return this.toLicense(updated);
   }
 
   async extendLicense(
+    tenantId: string,
     licenseKey: string, 
     extendYears?: number,
     duration?: number,
     durationUnit?: 'day' | 'month' | 'year',
     expiryDate?: Date | string
   ): Promise<any> {
-    const license = await this.licenseModel.findOne({ licenseKey }).lean();
+    const tid = new Types.ObjectId(tenantId);
+    const license = await this.licenseModel.findOne({ tenantId: tid, licenseKey }).lean();
     if (!license) throw new NotFoundException('License not found');
 
     let newExpiryDate: Date;
@@ -337,7 +331,7 @@ export class LicenseService {
     }
 
     await this.licenseModel.updateOne(
-      { licenseKey },
+      { tenantId: tid, licenseKey },
       {
         $set: {
           expiryDate: newExpiryDate,
@@ -347,58 +341,63 @@ export class LicenseService {
       },
     );
 
-    return this.findByKey(licenseKey);
+    return this.findByKey(tenantId, licenseKey);
   }
 
-  async findByKey(licenseKey: string) {
+  async findByKey(tenantId: string, licenseKey: string) {
+    const tid = new Types.ObjectId(tenantId);
     const doc = await this.licenseModel
-      .findOne({ licenseKey })
+      .findOne({ tenantId: tid, licenseKey })
       .populate('customerId')
       .lean();
     if (!doc) throw new NotFoundException('License not found');
     return this.toLicense(doc);
   }
 
-  async findByCustomer(customerId: string) {
+  async findByCustomer(tenantId: string, customerId: string) {
+    const tid = new Types.ObjectId(tenantId);
     const docs = await this.licenseModel
-      .find({ customerId: new Types.ObjectId(customerId) })
+      .find({ tenantId: tid, customerId: new Types.ObjectId(customerId) })
       .populate('customerId')
       .sort({ createdAt: -1 })
       .lean();
     return docs.map((d: any) => this.toLicense(d));
   }
 
-  async findAll() {
+  async findAll(tenantId: string) {
+    const tid = new Types.ObjectId(tenantId);
     const docs = await this.licenseModel
-      .find()
+      .find({ tenantId: tid })
       .populate('customerId')
       .sort({ createdAt: -1 })
       .lean();
     return docs.map((d: any) => this.toLicense(d));
   }
 
-  async suspend(licenseKey: string) {
-    const license = await this.licenseModel.findOne({ licenseKey });
+  async suspend(tenantId: string, licenseKey: string) {
+    const tid = new Types.ObjectId(tenantId);
+    const license = await this.licenseModel.findOne({ tenantId: tid, licenseKey });
     if (!license) throw new NotFoundException('License not found');
     await this.licenseModel.updateOne(
-      { licenseKey },
+      { tenantId: tid, licenseKey },
       { $set: { status: 'suspended', updatedAt: new Date() } },
     );
-    return this.findByKey(licenseKey);
+    return this.findByKey(tenantId, licenseKey);
   }
 
-  async reactivate(licenseKey: string) {
-    const license = await this.licenseModel.findOne({ licenseKey });
+  async reactivate(tenantId: string, licenseKey: string) {
+    const tid = new Types.ObjectId(tenantId);
+    const license = await this.licenseModel.findOne({ tenantId: tid, licenseKey });
     if (!license) throw new NotFoundException('License not found');
     const now = new Date();
     if (new Date(license.expiryDate) < now) {
       throw new BadRequestException('Cannot reactivate expired license. Extend it first.');
     }
     await this.licenseModel.updateOne(
-      { licenseKey },
+      { tenantId: tid, licenseKey },
       { $set: { status: 'active', updatedAt: new Date() } },
     );
-    return this.findByKey(licenseKey);
+    return this.findByKey(tenantId, licenseKey);
   }
 
   private toLicense(doc: any) {

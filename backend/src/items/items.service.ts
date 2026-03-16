@@ -48,19 +48,25 @@ export class ItemsService {
     };
   }
 
-  async create(dto: CreateItemDto) {
+  async create(dto: CreateItemDto, tenantId: string) {
+    if (!tenantId) throw new BadRequestException('Tenant ID is required');
     // Generate barcode from SKU if not provided
     const barcode = dto.barcode || dto.sku;
     const created = await this.model.create({
       ...dto,
       barcode,
+      tenantId: new Types.ObjectId(tenantId),
       categoryId: dto.categoryId ? new Types.ObjectId(dto.categoryId) : undefined,
     });
-    return this.findOne(created._id.toString());
+    return this.findOne(created._id.toString(), tenantId);
   }
 
-  async findAll(filters?: { categoryId?: string; search?: string }) {
-    const q: any = { isActive: { $ne: false } };
+  async findAll(tenantId: string, filters?: { categoryId?: string; search?: string }) {
+    if (!tenantId) throw new BadRequestException('Tenant ID is required');
+    const q: any = { 
+      tenantId: new Types.ObjectId(tenantId),
+      isActive: { $ne: false } 
+    };
     
     if (filters?.categoryId && Types.ObjectId.isValid(filters.categoryId)) {
       q.categoryId = new Types.ObjectId(filters.categoryId);
@@ -82,29 +88,34 @@ export class ItemsService {
     return docs.map((d: any) => this.toItem(d)).filter(Boolean);
   }
 
-  async findOne(id: string) {
-    const doc = await this.model.findById(id).populate('categoryId').lean();
+  async findOne(id: string, tenantId: string) {
+    if (!tenantId) throw new BadRequestException('Tenant ID is required');
+    const doc = await this.model.findOne({ _id: new Types.ObjectId(id), tenantId: new Types.ObjectId(tenantId) })
+      .populate('categoryId')
+      .lean();
     if (!doc) throw new NotFoundException('Item not found');
     return this.toItem(doc);
   }
 
-  async findBySku(sku: string) {
-    const doc = await this.model.findOne({ sku }).lean();
+  async findBySku(sku: string, tenantId: string) {
+    if (!tenantId) throw new BadRequestException('Tenant ID is required');
+    const doc = await this.model.findOne({ sku, tenantId: new Types.ObjectId(tenantId) }).lean();
     return doc ? this.toItem(doc) : null;
   }
 
-  async findByBarcode(barcode: string) {
+  async findByBarcode(barcode: string, tenantId: string) {
+    if (!tenantId) throw new BadRequestException('Tenant ID is required');
     // Try to find by barcode first, then fallback to SKU
-    let doc = await this.model.findOne({ barcode }).populate('categoryId').lean();
+    let doc = await this.model.findOne({ barcode, tenantId: new Types.ObjectId(tenantId) }).populate('categoryId').lean();
     if (!doc) {
       // Fallback to SKU if barcode not found
-      doc = await this.model.findOne({ sku: barcode }).populate('categoryId').lean();
+      doc = await this.model.findOne({ sku: barcode, tenantId: new Types.ObjectId(tenantId) }).populate('categoryId').lean();
     }
     return doc ? this.toItem(doc) : null;
   }
 
-  async update(id: string, dto: UpdateItemDto) {
-    const existing = await this.model.findById(id).lean();
+  async update(id: string, dto: UpdateItemDto, tenantId: string) {
+    const existing = await this.model.findOne({ _id: new Types.ObjectId(id), tenantId: new Types.ObjectId(tenantId) }).lean();
     if (!existing) throw new NotFoundException('Item not found');
 
     const update: any = { ...dto };
@@ -115,18 +126,25 @@ export class ItemsService {
       update.barcode = existing.sku;
     }
 
-    await this.model.updateOne({ _id: new Types.ObjectId(id) }, { $set: update });
-    return this.findOne(id);
+    await this.model.updateOne(
+      { _id: new Types.ObjectId(id), tenantId: new Types.ObjectId(tenantId) }, 
+      { $set: update }
+    );
+    return this.findOne(id, tenantId);
   }
 
-  async remove(id: string) {
-    await this.findOne(id);
-    await this.model.updateOne({ _id: new Types.ObjectId(id) }, { $set: { isActive: false } });
-    return this.findOne(id);
+  async remove(id: string, tenantId: string) {
+    await this.findOne(id, tenantId);
+    await this.model.updateOne(
+      { _id: new Types.ObjectId(id), tenantId: new Types.ObjectId(tenantId) }, 
+      { $set: { isActive: false } }
+    );
+    return this.findOne(id, tenantId);
   }
 
   /** Bulk import from CSV text. CSV must have header row: sku,name,unit,reorderLevel,price,costPrice,barcode */
-  async bulkImportFromCsv(csvText: string, categoryMap?: Record<string, string>): Promise<{ imported: number; errors: string[] }> {
+  async bulkImportFromCsv(csvText: string, tenantId: string, categoryMap?: Record<string, string>): Promise<{ imported: number; errors: string[] }> {
+    if (!tenantId) throw new BadRequestException('Tenant ID is required');
     const lines = csvText.split(/\r?\n/).filter((l) => l.trim());
     if (lines.length < 2) throw new BadRequestException('CSV must have a header row and at least one data row');
     const headers = lines[0].split(',').map((h) => h.trim().toLowerCase());
@@ -136,6 +154,8 @@ export class ItemsService {
     }
     const errors: string[] = [];
     let imported = 0;
+    const tid = new Types.ObjectId(tenantId);
+
     for (let i = 1; i < lines.length; i++) {
       const cols = lines[i].split(',').map((c) => c.trim().replace(/^"|"$/g, ''));
       const row: Record<string, string> = {};
@@ -145,7 +165,7 @@ export class ItemsService {
         continue;
       }
       try {
-        const existing = await this.model.findOne({ sku: row.sku }).lean();
+        const existing = await this.model.findOne({ sku: row.sku, tenantId: tid }).lean();
         const categoryId = row.categoryid && categoryMap?.[row.categoryid]
           ? new Types.ObjectId(categoryMap[row.categoryid])
           : undefined;
@@ -157,10 +177,11 @@ export class ItemsService {
           price: Number(row.price) || 0,
           costPrice: Number(row.costprice) || 0,
           barcode: row.barcode || row.sku,
+          tenantId: tid,
         };
         if (categoryId) data.categoryId = categoryId;
         if (existing) {
-          await this.model.updateOne({ _id: existing._id }, { $set: data });
+          await this.model.updateOne({ _id: existing._id, tenantId: tid }, { $set: data });
         } else {
           await this.model.create(data);
         }

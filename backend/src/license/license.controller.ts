@@ -12,6 +12,8 @@ import { LicenseService } from './license.service';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { RolesGuard } from '../guards/roles.guard';
 import { Roles } from '../decorators/roles.decorator';
+import { CurrentUser } from '../decorators/current-user.decorator';
+import { UserPayload } from '../common/user.types';
 
 @ApiTags('license')
 @Controller('api/license')
@@ -20,51 +22,53 @@ export class LicenseController {
 
   @Post('validate')
   @ApiOperation({ summary: 'Validate license for a computer (used during login)' })
-  async validate(@Body() body: { computerId: string }) {
-    return this.licenseService.validateLicense(body.computerId);
+  async validate(@Body() body: { computerId: string; tenantId?: string }) {
+    // If tenantId is not provided, we might need to handle it or error
+    return this.licenseService.validateLicense(body.computerId, body.tenantId || '');
   }
 
   @Get('status')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get license status for current computer (authenticated)' })
-  async status(@Query('computerId') computerId: string) {
-    return this.licenseService.getLicenseInfo(computerId || '');
+  async status(@CurrentUser() user: UserPayload, @Query('computerId') computerId: string) {
+    return this.licenseService.getLicenseInfo(computerId || '', user.tenantId);
   }
 
   @Get()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('dealer')
+  @Roles('dealer', 'admin')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'List all licenses (admin)' })
-  async findAll() {
-    return this.licenseService.findAll();
+  async findAll(@CurrentUser() user: UserPayload) {
+    return this.licenseService.findAll(user.tenantId);
   }
 
   @Get('by-key/:key')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('dealer')
+  @Roles('dealer', 'admin')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get license by key (admin)' })
-  async findByKey(@Param('key') key: string) {
-    return this.licenseService.findByKey(key);
+  async findByKey(@Param('key') key: string, @CurrentUser() user: UserPayload) {
+    return this.licenseService.findByKey(user.tenantId, key);
   }
 
   @Get('by-customer/:customerId')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('dealer')
+  @Roles('dealer', 'admin')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get licenses for a customer (admin)' })
-  async findByCustomer(@Param('customerId') customerId: string) {
-    return this.licenseService.findByCustomer(customerId);
+  async findByCustomer(@Param('customerId') customerId: string, @CurrentUser() user: UserPayload) {
+    return this.licenseService.findByCustomer(user.tenantId, customerId);
   }
 
   @Post('generate')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('dealer')
+  @Roles('dealer', 'admin')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Generate new license for customer (admin)' })
   async generate(
+    @CurrentUser() user: UserPayload,
     @Body()
     body: {
       customerId: string;
@@ -78,7 +82,7 @@ export class LicenseController {
   ) {
     const startDate = body.startDate ? new Date(body.startDate) : undefined;
     const expiryDate = body.expiryDate ? new Date(body.expiryDate) : undefined;
-    return this.licenseService.generateLicense({
+    return this.licenseService.generateLicense(user.tenantId, {
       customerId: body.customerId,
       computerId: body.computerId,
       startDate,
@@ -91,10 +95,11 @@ export class LicenseController {
 
   @Post('extend')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('dealer')
+  @Roles('dealer', 'admin')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Extend license expiry (renewal)' })
   async extend(
+    @CurrentUser() user: UserPayload,
     @Body() body: { 
       licenseKey: string; 
       extendYears?: number;
@@ -105,6 +110,7 @@ export class LicenseController {
   ) {
     const expiryDate = body.expiryDate ? new Date(body.expiryDate) : undefined;
     return this.licenseService.extendLicense(
+      user.tenantId,
       body.licenseKey,
       body.extendYears,
       body.duration,
@@ -115,10 +121,11 @@ export class LicenseController {
 
   @Post('update')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('dealer')
+  @Roles('dealer', 'admin')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update existing license (dealer)' })
   async update(
+    @CurrentUser() user: UserPayload,
     @Body()
     body: {
       id: string;
@@ -131,7 +138,7 @@ export class LicenseController {
     },
   ) {
     const expiryDate = body.expiryDate ? new Date(body.expiryDate) : undefined;
-    return this.licenseService.updateLicense({
+    return this.licenseService.updateLicense(user.tenantId, {
       ...body,
       expiryDate,
     });
@@ -139,19 +146,19 @@ export class LicenseController {
 
   @Post('suspend/:key')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('dealer')
+  @Roles('dealer', 'admin')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Suspend license (admin)' })
-  async suspend(@Param('key') key: string) {
-    return this.licenseService.suspend(key);
+  async suspend(@Param('key') key: string, @CurrentUser() user: UserPayload) {
+    return this.licenseService.suspend(user.tenantId, key);
   }
 
   @Post('reactivate/:key')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('dealer')
+  @Roles('dealer', 'admin')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Reactivate suspended license (admin)' })
-  async reactivate(@Param('key') key: string) {
-    return this.licenseService.reactivate(key);
+  async reactivate(@Param('key') key: string, @CurrentUser() user: UserPayload) {
+    return this.licenseService.reactivate(user.tenantId, key);
   }
 }

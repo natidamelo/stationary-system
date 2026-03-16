@@ -8,6 +8,7 @@ import {
   Param,
   Query,
   UseGuards,
+  Request,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { ItemsService } from './items.service';
@@ -28,48 +29,49 @@ export class ItemsController {
   @Post()
   @UseGuards(RolesGuard)
   @Roles(RoleEnum.ADMIN, RoleEnum.INVENTORY_CLERK, RoleEnum.MANAGER)
-  create(@Body() dto: CreateItemDto) {
-    return this.items.create(dto);
+  create(@Body() dto: CreateItemDto, @Request() req: any) {
+    return this.items.create(dto, req.user.tenantId);
   }
 
   @Get()
   async list(
+    @Request() req: any,
     @Query('categoryId') categoryId?: string,
     @Query('search') search?: string,
   ) {
-    const result = await this.items.findAll({ categoryId, search });
+    const result = await this.items.findAll(req.user.tenantId, { categoryId, search });
     console.log(`[ItemsController] GET /api/items - found ${result.length} items`);
     return result;
   }
 
   @Get('barcode/:barcode')
-  findByBarcode(@Param('barcode') barcode: string) {
-    return this.items.findByBarcode(barcode);
+  findByBarcode(@Param('barcode') barcode: string, @Request() req: any) {
+    return this.items.findByBarcode(barcode, req.user.tenantId);
   }
 
   @Get(':id')
-  get(@Param('id') id: string) {
-    return this.items.findOne(id);
+  get(@Param('id') id: string, @Request() req: any) {
+    return this.items.findOne(id, req.user.tenantId);
   }
 
   @Put(':id')
   @UseGuards(RolesGuard)
   @Roles(RoleEnum.ADMIN, RoleEnum.INVENTORY_CLERK, RoleEnum.MANAGER)
-  update(@Param('id') id: string, @Body() dto: UpdateItemDto) {
-    return this.items.update(id, dto);
+  update(@Param('id') id: string, @Body() dto: UpdateItemDto, @Request() req: any) {
+    return this.items.update(id, dto, req.user.tenantId);
   }
 
   @Delete(':id')
   @UseGuards(RolesGuard)
   @Roles(RoleEnum.ADMIN)
-  remove(@Param('id') id: string) {
-    return this.items.remove(id);
+  remove(@Param('id') id: string, @Request() req: any) {
+    return this.items.remove(id, req.user.tenantId);
   }
 
   @Post('bulk-import')
   @UseGuards(RolesGuard)
   @Roles(RoleEnum.ADMIN, RoleEnum.INVENTORY_CLERK, RoleEnum.MANAGER)
-  bulkImport(@Body() body: { csv: string; categoryMap?: Record<string, string> }) {
-    return this.items.bulkImportFromCsv(body.csv, body.categoryMap);
+  bulkImport(@Body() body: { csv: string; categoryMap?: Record<string, string> }, @Request() req: any) {
+    return this.items.bulkImportFromCsv(body.csv, req.user.tenantId, body.categoryMap);
   }
 }

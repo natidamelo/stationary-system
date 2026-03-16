@@ -27,6 +27,9 @@ const SaleLineSchema = SchemaFactory.createForClass(SaleLineDoc);
 
 @Schema({ collection: 'sales' })
 export class SaleDocument extends Document {
+  @Prop({ type: Types.ObjectId, ref: 'TenantDocument' })
+  tenantId: Types.ObjectId;
+
   @Prop({ required: true, unique: true })
   saleNumber: string;
 

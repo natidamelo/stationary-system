@@ -14,6 +14,9 @@ const DistributionLineSchema = SchemaFactory.createForClass(DistributionLineDoc)
 
 @Schema({ collection: 'distributions' })
 export class DistributionDocument extends Document {
+  @Prop({ type: Types.ObjectId, ref: 'TenantDocument' })
+  tenantId: Types.ObjectId;
+
   @Prop({ required: true, unique: true })
   distributionNumber: string;
 

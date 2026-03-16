@@ -7,6 +7,7 @@ import { AuthController } from './auth.controller';
 import { JwtStrategy } from './jwt.strategy';
 import { UsersModule } from '../users/users.module';
 import { LicenseModule } from '../license/license.module';
+import { TenantsModule } from '../tenants/tenants.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { LicenseModule } from '../license/license.module';
     }),
     UsersModule,
     LicenseModule,
+    TenantsModule,
   ],
   providers: [AuthService, JwtStrategy],
   controllers: [AuthController],

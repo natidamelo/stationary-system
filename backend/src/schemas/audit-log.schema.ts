@@ -3,6 +3,9 @@ import { Document, Types } from 'mongoose';
 
 @Schema({ collection: 'audit_logs' })
 export class AuditLogDocument extends Document {
+  @Prop({ type: Types.ObjectId, ref: 'TenantDocument' })
+  tenantId: Types.ObjectId;
+
     @Prop({ required: true })
     action: string; // e.g. "CREATE_ITEM", "APPROVE_PR", "DELETE_SUPPLIER"
 

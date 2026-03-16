@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { AttachmentDocument } from '../schemas/attachment.schema';
 
 @Injectable()
@@ -10,8 +10,10 @@ export class UploadService {
     private model: Model<AttachmentDocument>,
   ) {}
 
-  async create(file: Express.Multer.File, entityType?: string, entityId?: string) {
+  async create(tenantId: string, file: Express.Multer.File, entityType?: string, entityId?: string) {
+    const tid = new Types.ObjectId(tenantId);
     const created = await this.model.create({
+      tenantId: tid,
       filename: file.filename,
       originalName: file.originalname,
       mimeType: file.mimetype,
@@ -23,8 +25,9 @@ export class UploadService {
     return { id: (doc as any)._id.toString(), ...(doc as any) };
   }
 
-  async findByEntity(entityType: string, entityId: string) {
-    const docs = await this.model.find({ entityType, entityId }).sort({ createdAt: -1 }).lean();
+  async findByEntity(tenantId: string, entityType: string, entityId: string) {
+    const tid = new Types.ObjectId(tenantId);
+    const docs = await this.model.find({ tenantId: tid, entityType, entityId }).sort({ createdAt: -1 }).lean();
     return docs.map((d: any) => ({ id: d._id.toString(), ...d }));
   }
 }

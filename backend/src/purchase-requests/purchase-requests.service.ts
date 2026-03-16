@@ -17,8 +17,8 @@ export class PurchaseRequestsService {
     private model: Model<PurchaseRequestDocument>,
   ) {}
 
-  private async nextRequestNumber(): Promise<string> {
-    const last = await this.model.findOne().sort({ createdAt: -1 }).lean();
+  private async nextRequestNumber(tenantId: string): Promise<string> {
+    const last = await this.model.findOne({ tenantId: new Types.ObjectId(tenantId) }).sort({ createdAt: -1 }).lean();
     const num = last ? parseInt(String(last.requestNumber).replace(/\D/g, ''), 10) + 1 : 1;
     return `PR-${String(num).padStart(6, '0')}`;
   }
@@ -47,63 +47,70 @@ export class PurchaseRequestsService {
       rejectionReason: o.rejectionReason,
       lines,
       createdAt: o.createdAt,
+      tenantId: o.tenantId?.toString(),
     };
   }
 
-  async create(dto: CreatePurchaseRequestDto, user: { id: string }) {
-    const requestNumber = await this.nextRequestNumber();
+  async create(dto: CreatePurchaseRequestDto, user: { id: string; tenantId: string }) {
+    const tid = new Types.ObjectId(user.tenantId);
+    const requestNumber = await this.nextRequestNumber(user.tenantId);
     const created = await this.model.create({
       requestNumber,
       status: RequestStatus.DRAFT,
       requestedById: new Types.ObjectId(user.id),
+      tenantId: tid,
       lines: dto.lines.map((l) => ({
         itemId: new Types.ObjectId(l.itemId),
         quantity: Number(l.quantity) || 1,
         reason: l.reason,
       })),
     });
-    return this.findOne(created._id.toString());
+    return this.findOne(created._id.toString(), user.tenantId);
   }
 
-  async submit(id: string, user: { id: string }) {
-    const pr = await this.findOne(id);
+  async submit(id: string, user: { id: string; tenantId: string }) {
+    const pr = await this.findOne(id, user.tenantId);
     if (!pr || pr.requestedById !== user.id) throw new ForbiddenException('Not your request');
     if (!pr || pr.status !== RequestStatus.DRAFT) throw new BadRequestException('Only draft requests can be submitted');
-    await this.model.updateOne({ _id: new Types.ObjectId(id) }, { $set: { status: RequestStatus.PENDING } });
-    return this.findOne(id);
+    await this.model.updateOne(
+      { _id: new Types.ObjectId(id), tenantId: new Types.ObjectId(user.tenantId) }, 
+      { $set: { status: RequestStatus.PENDING } }
+    );
+    return this.findOne(id, user.tenantId);
   }
 
-  async findAll(filters?: { status?: RequestStatus; requestedBy?: string }) {
-    const q: any = {};
+  async findAll(tenantId: string, filters?: { status?: RequestStatus; requestedBy?: string }) {
+    const q: any = { tenantId: new Types.ObjectId(tenantId) };
     if (filters?.status) q.status = filters.status;
     if (filters?.requestedBy) q.requestedById = new Types.ObjectId(filters.requestedBy);
     const docs = await this.model.find(q).populate('requestedById').populate('approvedById').populate('lines.itemId').sort({ createdAt: -1 }).lean();
     return docs.map((d: any) => this.toPR(d));
   }
 
-  async findOne(id: string) {
-    const doc = await this.model.findById(id).populate('requestedById').populate('approvedById').populate('lines.itemId').lean();
+  async findOne(id: string, tenantId: string) {
+    const doc = await this.model.findOne({ _id: new Types.ObjectId(id), tenantId: new Types.ObjectId(tenantId) })
+      .populate('requestedById').populate('approvedById').populate('lines.itemId').lean();
     if (!doc) throw new NotFoundException('Purchase request not found');
     return this.toPR(doc);
   }
 
-  async approve(id: string, user: { id: string }) {
-    const pr = await this.findOne(id);
+  async approve(id: string, user: { id: string; tenantId: string }) {
+    const pr = await this.findOne(id, user.tenantId);
     if (!pr || pr.status !== RequestStatus.PENDING) throw new BadRequestException('Only pending requests can be approved');
     await this.model.updateOne(
-      { _id: new Types.ObjectId(id) },
+      { _id: new Types.ObjectId(id), tenantId: new Types.ObjectId(user.tenantId) },
       { $set: { status: RequestStatus.APPROVED, approvedById: new Types.ObjectId(user.id), approvedAt: new Date() }, $unset: { rejectionReason: 1 } },
     );
-    return this.findOne(id);
+    return this.findOne(id, user.tenantId);
   }
 
-  async reject(id: string, user: { id: string }, reason: string) {
-    const pr = await this.findOne(id);
+  async reject(id: string, user: { id: string; tenantId: string }, reason: string) {
+    const pr = await this.findOne(id, user.tenantId);
     if (!pr || pr.status !== RequestStatus.PENDING) throw new BadRequestException('Only pending requests can be rejected');
     await this.model.updateOne(
-      { _id: new Types.ObjectId(id) },
+      { _id: new Types.ObjectId(id), tenantId: new Types.ObjectId(user.tenantId) },
       { $set: { status: RequestStatus.REJECTED, approvedById: new Types.ObjectId(user.id), approvedAt: new Date(), rejectionReason: reason } },
     );
-    return this.findOne(id);
+    return this.findOne(id, user.tenantId);
   }
 }

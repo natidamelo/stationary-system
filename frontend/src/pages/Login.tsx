@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Box, Paper, Typography, TextField, Button, Alert, InputAdornment, IconButton } from '@mui/material';
+import { useNavigate, Link as RouterLink } from 'react-router-dom';
+import { Box, Paper, Typography, TextField, Button, Alert, InputAdornment, IconButton, Link } from '@mui/material';
 import { useAuth } from '../context/AuthContext';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import VisibilityOffRoundedIcon from '@mui/icons-material/VisibilityOffRounded';
@@ -197,6 +197,15 @@ export default function Login() {
             Sign in
           </Button>
         </form>
+
+        <Box sx={{ mt: 3, textAlign: 'center' }}>
+          <Typography variant="body2" color="text.secondary">
+            Don't have an account?{' '}
+            <Link component={RouterLink} to="/register" sx={{ fontWeight: 600, color: '#4f46e5', textDecoration: 'none' }}>
+              Create one here
+            </Link>
+          </Typography>
+        </Box>
 
         <Box sx={{ mt: 3, p: 2, bgcolor: '#f9fafb', borderRadius: 2.5, border: '1px solid #f3f4f6' }}>
           <Typography variant="caption" color="text.secondary" display="block" fontWeight={600} sx={{ mb: 0.5 }}>

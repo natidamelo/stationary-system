@@ -9,6 +9,7 @@ type AuthContextType = {
   license: LicenseInfo | null;
   computerId: string;
   login: (email: string, password: string) => Promise<void>;
+  register: (data: { email: string; password: string; fullName: string; companyName: string }) => Promise<void>;
   logout: () => void;
   loading: boolean;
 };
@@ -54,6 +55,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     setToken(data.access_token);
     setUser(data.user);
+  };
+
+  const register = async (data: { email: string; password: string; fullName: string; companyName: string }) => {
+    const res = await api.post<LoginRes>('/auth/register', data);
+    // After registration, we usually want to log them in automatically if the API returns a token
+    // or we can just redirect to login. Based on our backend, register returns the User, not a token.
+    // So we'll leave it to the UI to redirect to login or handle auto-login.
   };
 
   const logout = () => {

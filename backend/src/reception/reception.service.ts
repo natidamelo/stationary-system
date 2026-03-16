@@ -19,8 +19,8 @@ export class ReceptionService {
     private inventory: InventoryService,
   ) {}
 
-  private async nextSaleNumber(): Promise<string> {
-    const last = await this.saleModel.findOne().sort({ soldAt: -1 }).lean();
+  private async nextSaleNumber(tenantId: string): Promise<string> {
+    const last = await this.saleModel.findOne({ tenantId: new Types.ObjectId(tenantId) }).sort({ soldAt: -1 }).lean();
     const num = last ? parseInt(String(last.saleNumber).replace(/\D/g, ''), 10) + 1 : 1;
     return `SAL-${String(num).padStart(6, '0')}`;
   }
@@ -61,6 +61,7 @@ export class ReceptionService {
         customerName: o.customerName,
         notes: o.notes,
         paymentMethod: o.paymentMethod || 'cash',
+        tenantId: o.tenantId?.toString(),
       };
     } catch {
       return null;
@@ -75,14 +76,15 @@ export class ReceptionService {
       notes?: string;
       paymentMethod?: string;
     },
-    user: { id: string },
+    user: { id: string; tenantId: string },
   ) {
     if (!body.lines?.length) throw new BadRequestException('At least one line required');
+    const tid = new Types.ObjectId(user.tenantId);
     
     // Validate items have stock and selling price does not exceed original price
     for (const l of body.lines) {
       if (l.itemId) {
-        const item = await this.itemModel.findById(l.itemId).select('name sku price').lean();
+        const item = await this.itemModel.findOne({ _id: new Types.ObjectId(l.itemId), tenantId: tid }).select('name sku price').lean();
         if (!item) throw new BadRequestException('Item not found');
         const originalPrice = Number(item.price ?? 0);
         if (l.unitPrice > originalPrice) {
@@ -91,14 +93,14 @@ export class ReceptionService {
             `Selling price (${l.unitPrice.toFixed(2)}) cannot exceed original price (${originalPrice.toFixed(2)}) for ${label}`,
           );
         }
-        const balance = await this.inventory.getBalance(l.itemId);
+        const balance = await this.inventory.getBalance(l.itemId, user.tenantId);
         if (balance < l.quantity) {
           const label = `${item.name} (${item.sku})`;
           throw new BadRequestException(`Insufficient stock for ${label}. Available: ${balance}, requested: ${l.quantity}`);
         }
       } else if (l.serviceId) {
         // Validate service exists and is active
-        const service = await this.serviceModel.findById(l.serviceId).lean();
+        const service = await this.serviceModel.findOne({ _id: new Types.ObjectId(l.serviceId), tenantId: tid }).lean();
         if (!service || !service.isActive) {
           throw new BadRequestException(`Service not found or inactive`);
         }
@@ -107,7 +109,7 @@ export class ReceptionService {
       }
     }
     
-    const saleNumber = await this.nextSaleNumber();
+    const saleNumber = await this.nextSaleNumber(user.tenantId);
     const lines: { itemId?: Types.ObjectId; serviceId?: Types.ObjectId; quantity: number; unitPrice: number; unitCost?: number; total: number }[] = [];
     let totalAmount = 0;
     for (const l of body.lines) {
@@ -115,7 +117,7 @@ export class ReceptionService {
       let lineAmount: number;
       let unitCost = 0;
       if (l.itemId) {
-        const item = await this.itemModel.findById(l.itemId).select('price costPrice').lean();
+        const item = await this.itemModel.findOne({ _id: new Types.ObjectId(l.itemId), tenantId: tid }).select('price costPrice').lean();
         lineAmount = (Number((item as any)?.price ?? 0)) * l.quantity; // use original price for sale total
         unitCost = Math.max(0, Number((item as any)?.costPrice ?? 0));
       } else {
@@ -131,7 +133,7 @@ export class ReceptionService {
         line.unitCost = unitCost;
       }
       if (l.serviceId) {
-        const service = await this.serviceModel.findById(l.serviceId).select('costPrice').lean();
+        const service = await this.serviceModel.findOne({ _id: new Types.ObjectId(l.serviceId), tenantId: tid }).select('costPrice').lean();
         line.serviceId = new Types.ObjectId(l.serviceId);
         line.unitCost = Math.max(0, Number((service as any)?.costPrice ?? 0));
       }
@@ -153,6 +155,7 @@ export class ReceptionService {
       customerName: body.customerName,
       notes: body.notes,
       paymentMethod: body.paymentMethod || 'cash',
+      tenantId: tid,
     });
 
     for (const l of body.lines) {
@@ -166,21 +169,15 @@ export class ReceptionService {
       }
     }
 
-    return this.toSale(
-      await this.saleModel
-        .findById(created._id)
-        .populate('lines.itemId')
-        .populate('lines.serviceId')
-        .populate('soldById')
-        .lean(),
-    );
+    return this.findOne(created._id.toString(), user.tenantId);
   }
 
-  async getTodaysSales() {
+  async getTodaysSales(tenantId: string) {
+    const tid = new Types.ObjectId(tenantId);
     const start = new Date();
     start.setHours(0, 0, 0, 0);
     const docs = await this.saleModel
-      .find({ soldAt: { $gte: start } })
+      .find({ soldAt: { $gte: start }, tenantId: tid })
       .populate('lines.itemId', 'name sku')
       .populate('lines.serviceId', 'name')
       .populate('soldById', 'fullName')
@@ -189,9 +186,13 @@ export class ReceptionService {
     return docs.map((d: any) => this.toSale(d)).filter(Boolean);
   }
 
-  async getUnpaidSales() {
+  async getUnpaidSales(tenantId: string) {
+    const tid = new Types.ObjectId(tenantId);
     const docs = await this.saleModel
-      .find({ $expr: { $lt: [{ $ifNull: ['$amountPaid', '$totalAmount'] }, '$totalAmount'] } })
+      .find({ 
+        tenantId: tid,
+        $expr: { $lt: [{ $ifNull: ['$amountPaid', '$totalAmount'] }, '$totalAmount'] } 
+      })
       .populate('lines.itemId', 'name sku')
       .populate('lines.serviceId', 'name')
       .populate('soldById', 'fullName')
@@ -201,11 +202,22 @@ export class ReceptionService {
     return docs.map((d: any) => this.toSale(d)).filter(Boolean);
   }
 
-  async getDashboard() {
+  async findOne(id: string, tenantId: string) {
+    const doc = await this.saleModel
+      .findOne({ _id: new Types.ObjectId(id), tenantId: new Types.ObjectId(tenantId) })
+      .populate('lines.itemId')
+      .populate('lines.serviceId')
+      .populate('soldById')
+      .lean();
+    if (!doc) return null;
+    return this.toSale(doc);
+  }
+
+  async getDashboard(tenantId: string) {
     const [todaysSales, lowStock, unpaidSales] = await Promise.all([
-      this.getTodaysSales(),
-      this.inventory.getLowStockItems(),
-      this.getUnpaidSales(),
+      this.getTodaysSales(tenantId),
+      this.inventory.getLowStockItems(tenantId),
+      this.getUnpaidSales(tenantId),
     ]);
     const todayRevenue = todaysSales.reduce((sum, s) => sum + (s?.totalAmount ?? 0), 0);
     return {
@@ -220,10 +232,12 @@ export class ReceptionService {
 
   async recordPayment(
     saleId: string,
+    tenantId: string,
     body: { amount: number; paymentMethod?: string },
-    user: { id: string },
+    user: { id: string; tenantId: string },
   ) {
-    const sale = await this.saleModel.findById(saleId).lean();
+    const tid = new Types.ObjectId(tenantId);
+    const sale = await this.saleModel.findOne({ _id: new Types.ObjectId(saleId), tenantId: tid }).lean();
     if (!sale) throw new BadRequestException('Sale not found');
     const totalAmount = Number(sale.totalAmount ?? 0);
     const currentPaid = Number((sale as any).amountPaid ?? totalAmount);
@@ -237,15 +251,9 @@ export class ReceptionService {
     if (payAmount <= 0) throw new BadRequestException('Payment amount must be greater than 0');
     const newAmountPaid = currentPaid + payAmount;
     await this.saleModel.updateOne(
-      { _id: saleId },
+      { _id: saleId, tenantId: tid },
       { $set: { amountPaid: newAmountPaid } },
     );
-    return this.toSale(
-      await this.saleModel.findById(saleId)
-        .populate('lines.itemId')
-        .populate('lines.serviceId')
-        .populate('soldById')
-        .lean(),
-    );
+    return this.findOne(saleId, tenantId);
   }
 }

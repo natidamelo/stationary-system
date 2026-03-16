@@ -3,7 +3,10 @@ import { Document, Types } from 'mongoose';
 
 @Schema({ collection: 'items' })
 export class ItemDocument extends Document {
-  @Prop({ required: true, unique: true })
+  @Prop({ type: Types.ObjectId, ref: 'TenantDocument' })
+  tenantId: Types.ObjectId;
+
+  @Prop({ required: true })
   sku: string;
 
   @Prop({ required: true })
@@ -28,7 +31,7 @@ export class ItemDocument extends Document {
   @Prop()
   imageUrl: string;
 
-  @Prop({ unique: true, sparse: true })
+  @Prop({ sparse: true })
   barcode: string;
 
   @Prop({ default: true })
@@ -36,3 +39,5 @@ export class ItemDocument extends Document {
 }
 
 export const ItemSchema = SchemaFactory.createForClass(ItemDocument);
+ItemSchema.index({ tenantId: 1, sku: 1 }, { unique: true });
+ItemSchema.index({ tenantId: 1, barcode: 1 }, { unique: true, sparse: true });

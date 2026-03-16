@@ -35,27 +35,27 @@ export class PurchaseOrdersController {
   }
 
   @Get()
-  list(@Query('status') status?: POStatus) {
-    return this.pos.findAll({ status });
+  list(@CurrentUser() user: UserPayload, @Query('status') status?: POStatus) {
+    return this.pos.findAll(user.tenantId, { status });
   }
 
   @Get(':id')
-  get(@Param('id') id: string) {
-    return this.pos.findOne(id);
+  get(@Param('id') id: string, @CurrentUser() user: UserPayload) {
+    return this.pos.findOne(id, user.tenantId);
   }
 
   @Put(':id')
   @UseGuards(RolesGuard)
   @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.INVENTORY_CLERK)
-  update(@Param('id') id: string, @Body() dto: UpdatePurchaseOrderDto) {
-    return this.pos.update(id, dto);
+  update(@Param('id') id: string, @Body() dto: UpdatePurchaseOrderDto, @CurrentUser() user: UserPayload) {
+    return this.pos.update(id, user.tenantId, dto);
   }
 
   @Post(':id/send')
   @UseGuards(RolesGuard)
   @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.INVENTORY_CLERK)
-  send(@Param('id') id: string) {
-    return this.pos.send(id);
+  send(@Param('id') id: string, @CurrentUser() user: UserPayload) {
+    return this.pos.send(id, user.tenantId);
   }
 
   @Post(':id/receive')
@@ -66,13 +66,13 @@ export class PurchaseOrdersController {
     @Body() body: { lines: { lineId: string; receivedQuantity: number }[] },
     @CurrentUser() user: UserPayload,
   ) {
-    return this.pos.receive(id, body, user);
+    return this.pos.receive(id, user.tenantId, body, user);
   }
 
   @Post(':id/close')
   @UseGuards(RolesGuard)
   @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.INVENTORY_CLERK)
-  close(@Param('id') id: string) {
-    return this.pos.close(id);
+  close(@Param('id') id: string, @CurrentUser() user: UserPayload) {
+    return this.pos.close(id, user.tenantId);
   }
 }

@@ -32,17 +32,17 @@ export class PurchaseRequestsController {
 
   @Get('my')
   myRequests(@CurrentUser() user: UserPayload) {
-    return this.requests.findAll({ requestedBy: user.id });
+    return this.requests.findAll(user.tenantId, { requestedBy: user.id });
   }
 
   @Get()
-  list(@Query('status') status?: RequestStatus) {
-    return this.requests.findAll({ status });
+  list(@CurrentUser() user: UserPayload, @Query('status') status?: RequestStatus) {
+    return this.requests.findAll(user.tenantId, { status });
   }
 
   @Get(':id')
-  get(@Param('id') id: string) {
-    return this.requests.findOne(id);
+  get(@Param('id') id: string, @CurrentUser() user: UserPayload) {
+    return this.requests.findOne(id, user.tenantId);
   }
 
   @Post(':id/submit')

@@ -7,6 +7,7 @@ import {
   Body,
   Param,
   UseGuards,
+  Request,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CategoriesService } from './categories.service';
@@ -25,18 +26,18 @@ export class CategoriesController {
   @Post()
   @UseGuards(RolesGuard)
   @Roles(RoleEnum.ADMIN, RoleEnum.INVENTORY_CLERK, RoleEnum.MANAGER)
-  create(@Body() body: { name: string; description?: string }) {
-    return this.categories.create(body.name, body.description);
+  create(@Body() body: { name: string; description?: string }, @Request() req: any) {
+    return this.categories.create(body.name, req.user.tenantId, body.description);
   }
 
   @Get()
-  list() {
-    return this.categories.findAll();
+  list(@Request() req: any) {
+    return this.categories.findAll(req.user.tenantId);
   }
 
   @Get(':id')
-  get(@Param('id') id: string) {
-    return this.categories.findOne(id);
+  get(@Param('id') id: string, @Request() req: any) {
+    return this.categories.findOne(id, req.user.tenantId);
   }
 
   @Put(':id')
@@ -45,14 +46,15 @@ export class CategoriesController {
   update(
     @Param('id') id: string,
     @Body() body: { name?: string; description?: string },
+    @Request() req: any
   ) {
-    return this.categories.update(id, body);
+    return this.categories.update(id, req.user.tenantId, body);
   }
 
   @Delete(':id')
   @UseGuards(RolesGuard)
   @Roles(RoleEnum.ADMIN)
-  remove(@Param('id') id: string) {
-    return this.categories.remove(id);
+  remove(@Param('id') id: string, @Request() req: any) {
+    return this.categories.remove(id, req.user.tenantId);
   }
 }

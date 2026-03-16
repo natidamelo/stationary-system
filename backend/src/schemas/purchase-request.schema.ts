@@ -17,6 +17,9 @@ const PurchaseRequestLineSchema = SchemaFactory.createForClass(PurchaseRequestLi
 
 @Schema({ collection: 'purchase_requests' })
 export class PurchaseRequestDocument extends Document {
+  @Prop({ type: Types.ObjectId, ref: 'TenantDocument' })
+  tenantId: Types.ObjectId;
+
   @Prop({ required: true, unique: true })
   requestNumber: string;
 

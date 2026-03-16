@@ -40,9 +40,10 @@ export class ReportsService {
     private serviceModel: Model<ServiceDocument>,
   ) {}
 
-  async stockReport() {
-    const items = await this.itemModel.find({ isActive: true }).populate('categoryId').sort({ name: 1 }).lean();
-    const balances = await this.inventory.getBalancesForItems(items.map((i: any) => i._id.toString()));
+  async stockReport(tenantId: string) {
+    const tid = new Types.ObjectId(tenantId);
+    const items = await this.itemModel.find({ tenantId: tid, isActive: true }).populate('categoryId').sort({ name: 1 }).lean();
+    const balances = await this.inventory.getBalancesForItems(items.map((i: any) => i._id.toString()), tenantId);
     return items.map((i: any) => ({
       id: i._id.toString(),
       sku: i.sku,
@@ -82,10 +83,11 @@ export class ReportsService {
     return { start, end };
   }
 
-  async stockReportByPeriod(period: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly') {
+  async stockReportByPeriod(tenantId: string, period: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly') {
     const { start, end } = this.getPeriodDates(period);
+    const tid = new Types.ObjectId(tenantId);
     const movements = await this.movementModel
-      .find({ createdAt: { $gte: start, $lte: end } })
+      .find({ tenantId: tid, createdAt: { $gte: start, $lte: end } })
       .populate('itemId')
       .lean();
     const byItem: Record<string, { itemId: string; sku: string; name: string; in: number; out: number }> = {};
@@ -108,8 +110,8 @@ export class ReportsService {
       if (isIn) byItem[id].in += m.quantity;
       else byItem[id].out += m.quantity;
     }
-    const items = await this.itemModel.find({ isActive: true }).lean();
-    const balances = await this.inventory.getBalancesForItems(items.map((i: any) => i._id.toString()));
+    const items = await this.itemModel.find({ tenantId: tid, isActive: true }).lean();
+    const balances = await this.inventory.getBalancesForItems(items.map((i: any) => i._id.toString()), tenantId);
     return {
       period,
       start,
@@ -123,11 +125,12 @@ export class ReportsService {
     };
   }
 
-  async financialSummary(period: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly') {
+  async financialSummary(tenantId: string, period: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly') {
     const { start, end } = this.getPeriodDates(period);
+    const tid = new Types.ObjectId(tenantId);
     const [sales, posReceived] = await Promise.all([
-      this.saleModel.find({ soldAt: { $gte: start, $lte: end } }).lean(),
-      this.poModel.find({ status: 'received', orderDate: { $gte: start, $lte: end } }).populate('lines').lean(),
+      this.saleModel.find({ tenantId: tid, soldAt: { $gte: start, $lte: end } }).lean(),
+      this.poModel.find({ tenantId: tid, status: 'received', orderDate: { $gte: start, $lte: end } }).populate('lines').lean(),
     ]);
     const revenue = sales.reduce((sum: number, s: any) => sum + (s.totalAmount || 0), 0);
     let purchaseCost = 0;
@@ -147,10 +150,11 @@ export class ReportsService {
     };
   }
 
-  async salesReport(period: 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'yearly') {
+  async salesReport(tenantId: string, period: 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'yearly') {
     const { start, end } = this.getPeriodDates(period);
+    const tid = new Types.ObjectId(tenantId);
     const sales = await this.saleModel
-      .find({ soldAt: { $gte: start, $lte: end } })
+      .find({ tenantId: tid, soldAt: { $gte: start, $lte: end } })
       .populate('soldById')
       .populate('lines.itemId')
       .populate('lines.serviceId')
@@ -197,19 +201,20 @@ export class ReportsService {
     };
   }
 
-  async businessOverview(period: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly' = 'monthly') {
+  async businessOverview(tenantId: string, period: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly' = 'monthly') {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const tid = new Types.ObjectId(tenantId);
     const [itemCount, categoryCount, supplierCount, userCount, recentSalesCount, recentDistCount, lowStockItems, revenueTrend] =
       await Promise.all([
-        this.itemModel.countDocuments({ isActive: true }),
-        this.categoryModel.countDocuments(),
-        this.supplierModel.countDocuments({ isActive: true }),
-        this.userModel.countDocuments({ isActive: true }),
-        this.saleModel.countDocuments({ soldAt: { $gte: thirtyDaysAgo } }),
-        this.distributionModel.countDocuments({ createdAt: { $gte: thirtyDaysAgo } }),
-        this.inventory.getLowStockItems(),
-        this.getRevenueTrend(period),
+        this.itemModel.countDocuments({ tenantId: tid, isActive: true }),
+        this.categoryModel.countDocuments({ tenantId: tid }),
+        this.supplierModel.countDocuments({ tenantId: tid, isActive: true }),
+        this.userModel.countDocuments({ tenantId: tid, isActive: true }),
+        this.saleModel.countDocuments({ tenantId: tid, soldAt: { $gte: thirtyDaysAgo } }),
+        this.distributionModel.countDocuments({ tenantId: tid, createdAt: { $gte: thirtyDaysAgo } }),
+        this.inventory.getLowStockItems(tenantId),
+        this.getRevenueTrend(tenantId, period),
       ]);
     return {
       totalItems: itemCount,
@@ -223,19 +228,20 @@ export class ReportsService {
     };
   }
 
-  private async getRevenueTrend(period: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly'): Promise<Array<{ label: string; revenue: number; date: string }>> {
+  private async getRevenueTrend(tenantId: string, period: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly'): Promise<Array<{ label: string; revenue: number; date: string }>> {
+    const tid = new Types.ObjectId(tenantId);
     if (period === 'quarterly') {
-      return this.getRevenueTrendByWeek(13);
+      return this.getRevenueTrendByWeek(tenantId, 13);
     }
     if (period === 'yearly') {
-      return this.getRevenueTrendByMonth(12);
+      return this.getRevenueTrendByMonth(tenantId, 12);
     }
     const days = period === 'monthly' ? 30 : 7;
     const start = new Date();
     start.setDate(start.getDate() - days);
     start.setHours(0, 0, 0, 0);
     const pipeline = [
-      { $match: { soldAt: { $gte: start } } },
+      { $match: { tenantId: tid, soldAt: { $gte: start } } },
       { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$soldAt' } }, revenue: { $sum: '$totalAmount' } } },
       { $sort: { _id: 1 as 1 } },
     ];
@@ -258,12 +264,13 @@ export class ReportsService {
     return result;
   }
 
-  private async getRevenueTrendByWeek(weeks: number): Promise<Array<{ label: string; revenue: number; date: string }>> {
+  private async getRevenueTrendByWeek(tenantId: string, weeks: number): Promise<Array<{ label: string; revenue: number; date: string }>> {
+    const tid = new Types.ObjectId(tenantId);
     const start = new Date();
     start.setDate(start.getDate() - weeks * 7);
     start.setHours(0, 0, 0, 0);
     const pipeline = [
-      { $match: { soldAt: { $gte: start } } },
+      { $match: { tenantId: tid, soldAt: { $gte: start } } },
       {
         $group: {
           _id: {
@@ -305,13 +312,14 @@ export class ReportsService {
     return { year, week };
   }
 
-  private async getRevenueTrendByMonth(months: number): Promise<Array<{ label: string; revenue: number; date: string }>> {
+  private async getRevenueTrendByMonth(tenantId: string, months: number): Promise<Array<{ label: string; revenue: number; date: string }>> {
+    const tid = new Types.ObjectId(tenantId);
     const start = new Date();
     start.setMonth(start.getMonth() - months);
     start.setDate(1);
     start.setHours(0, 0, 0, 0);
     const pipeline = [
-      { $match: { soldAt: { $gte: start } } },
+      { $match: { tenantId: tid, soldAt: { $gte: start } } },
       {
         $group: {
           _id: { $dateToString: { format: '%Y-%m', date: '$soldAt' } },
@@ -338,16 +346,17 @@ export class ReportsService {
     return result;
   }
 
-  async costProfitAnalysis(period: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly') {
-    const financial = await this.financialSummary(period);
+  async costProfitAnalysis(tenantId: string, period: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly') {
+    const tid = new Types.ObjectId(tenantId);
+    const financial = await this.financialSummary(tenantId, period);
     const { start, end } = this.getPeriodDates(period);
     const [expenses, sales] = await Promise.all([
       this.operatingExpenseModel
-        .find({ date: { $gte: start, $lte: end } })
+        .find({ tenantId: tid, date: { $gte: start, $lte: end } })
         .sort({ date: -1 })
         .lean(),
       this.saleModel
-        .find({ soldAt: { $gte: start, $lte: end } })
+        .find({ tenantId: tid, soldAt: { $gte: start, $lte: end } })
         .populate('lines.itemId')
         .populate('lines.serviceId')
         .lean(),
@@ -411,12 +420,14 @@ export class ReportsService {
     };
   }
 
-  async createOperatingExpense(body: { date: string; description: string; amount: number; category?: string }) {
+  async createOperatingExpense(tenantId: string, body: { date: string; description: string; amount: number; category?: string }) {
+    const tid = new Types.ObjectId(tenantId);
     const doc = await this.operatingExpenseModel.create({
       date: new Date(body.date),
       description: body.description,
       amount: Number(body.amount),
       category: body.category,
+      tenantId: tid,
     });
     return {
       id: doc._id.toString(),
@@ -427,14 +438,16 @@ export class ReportsService {
     };
   }
 
-  async deleteOperatingExpense(id: string) {
-    await this.operatingExpenseModel.deleteOne({ _id: new Types.ObjectId(id) });
+  async deleteOperatingExpense(id: string, tenantId: string) {
+    const tid = new Types.ObjectId(tenantId);
+    await this.operatingExpenseModel.deleteOne({ _id: new Types.ObjectId(id), tenantId: tid });
   }
 
-  async serviceAnalytics(period: 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'yearly') {
+  async serviceAnalytics(tenantId: string, period: 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'yearly') {
     const { start, end } = this.getPeriodDates(period);
+    const tid = new Types.ObjectId(tenantId);
     const distributions = await this.distributionModel
-      .find({ createdAt: { $gte: start, $lte: end } })
+      .find({ tenantId: tid, createdAt: { $gte: start, $lte: end } })
       .populate('issuedToUserId')
       .populate('lines.itemId')
       .sort({ createdAt: -1 })
@@ -470,7 +483,7 @@ export class ReportsService {
     }
 
     // Build distribution trend based on period granularity
-    const trend = await this.getDistributionTrend(period, start);
+    const trend = await this.getDistributionTrend(tenantId, period, start);
 
     // Recent distributions (last 10)
     const recentDistributions = (distributions as any[]).slice(0, 10).map((d) => ({
@@ -508,13 +521,15 @@ export class ReportsService {
   }
 
   private async getDistributionTrend(
+    tenantId: string,
     period: 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'yearly',
     start: Date,
   ): Promise<Array<{ label: string; count: number; date: string }>> {
+    const tid = new Types.ObjectId(tenantId);
     if (period === 'yearly') {
       // Group by month for the last 12 months
       const pipeline = [
-        { $match: { createdAt: { $gte: start } } },
+        { $match: { tenantId: tid, createdAt: { $gte: start } } },
         { $group: { _id: { $dateToString: { format: '%Y-%m', date: '$createdAt' } }, count: { $sum: 1 } } },
         { $sort: { _id: 1 as 1 } },
       ];
@@ -534,7 +549,7 @@ export class ReportsService {
     if (period === 'quarterly') {
       // Group by week for last 13 weeks
       const pipeline = [
-        { $match: { createdAt: { $gte: start } } },
+        { $match: { tenantId: tid, createdAt: { $gte: start } } },
         {
           $group: {
             _id: { year: { $isoWeekYear: '$createdAt' }, week: { $isoWeek: '$createdAt' } },
@@ -559,7 +574,7 @@ export class ReportsService {
     // Daily grouping for daily/weekly/biweekly/monthly
     const days = period === 'daily' ? 1 : period === 'weekly' ? 7 : period === 'biweekly' ? 14 : 30;
     const pipeline = [
-      { $match: { createdAt: { $gte: start } } },
+      { $match: { tenantId: tid, createdAt: { $gte: start } } },
       { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } }, count: { $sum: 1 } } },
       { $sort: { _id: 1 as 1 } },
     ];
@@ -578,8 +593,8 @@ export class ReportsService {
     return result;
   }
 
-  async inventoryReport() {
-    const rows = await this.stockReport();
+  async inventoryReport(tenantId: string) {
+    const rows = await this.stockReport(tenantId);
     const totalValue = rows.reduce((sum, r) => sum + r.currentStock * r.price, 0);
     const lowStock = rows.filter((r) => r.currentStock <= r.reorderLevel);
     const totalItems = rows.length;

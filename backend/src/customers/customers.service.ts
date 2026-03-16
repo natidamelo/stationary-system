@@ -16,8 +16,11 @@ export class CustomersService {
     contact?: string;
     address?: string;
     notes?: string;
-  }) {
-    const existing = await this.customerModel.findOne({ email: data.email.toLowerCase() }).lean();
+  }, tenantId: string) {
+    const existing = await this.customerModel.findOne({ 
+      email: data.email.toLowerCase(),
+      tenantId: new Types.ObjectId(tenantId)
+    }).lean();
     if (existing) {
       throw new BadRequestException('A customer with this email already exists.');
     }
@@ -27,17 +30,18 @@ export class CustomersService {
       contact: data.contact,
       address: data.address,
       notes: data.notes,
+      tenantId: new Types.ObjectId(tenantId),
     });
-    return this.findById(created._id.toString());
+    return this.findById(created._id.toString(), tenantId);
   }
 
-  async findAll() {
-    const docs = await this.customerModel.find().sort({ createdAt: -1 }).lean();
+  async findAll(tenantId: string) {
+    const docs = await this.customerModel.find({ tenantId: new Types.ObjectId(tenantId) }).sort({ createdAt: -1 }).lean();
     return docs.map((d: any) => this.toCustomer(d));
   }
 
-  async findById(id: string) {
-    const doc = await this.customerModel.findById(id).lean();
+  async findById(id: string, tenantId: string) {
+    const doc = await this.customerModel.findOne({ _id: new Types.ObjectId(id), tenantId: new Types.ObjectId(tenantId) }).lean();
     if (!doc) throw new NotFoundException('Customer not found');
     return this.toCustomer(doc);
   }
@@ -48,24 +52,27 @@ export class CustomersService {
     contact: string;
     address: string;
     notes: string;
-  }>) {
-    const doc = await this.customerModel.findById(id).lean();
+  }>, tenantId: string) {
+    const doc = await this.customerModel.findOne({ _id: new Types.ObjectId(id), tenantId: new Types.ObjectId(tenantId) }).lean();
     if (!doc) throw new NotFoundException('Customer not found');
     if (data.email && data.email !== doc.email) {
-      const existing = await this.customerModel.findOne({ email: data.email.toLowerCase() }).lean();
+      const existing = await this.customerModel.findOne({ 
+        email: data.email.toLowerCase(),
+        tenantId: new Types.ObjectId(tenantId)
+      }).lean();
       if (existing) throw new BadRequestException('A customer with this email already exists.');
     }
     await this.customerModel.updateOne(
-      { _id: new Types.ObjectId(id) },
+      { _id: new Types.ObjectId(id), tenantId: new Types.ObjectId(tenantId) },
       { $set: { ...data, email: data.email?.toLowerCase(), updatedAt: new Date() } },
     );
-    return this.findById(id);
+    return this.findById(id, tenantId);
   }
 
-  async delete(id: string) {
-    const doc = await this.customerModel.findById(id).lean();
+  async delete(id: string, tenantId: string) {
+    const doc = await this.customerModel.findOne({ _id: new Types.ObjectId(id), tenantId: new Types.ObjectId(tenantId) }).lean();
     if (!doc) throw new NotFoundException('Customer not found');
-    await this.customerModel.deleteOne({ _id: new Types.ObjectId(id) });
+    await this.customerModel.deleteOne({ _id: new Types.ObjectId(id), tenantId: new Types.ObjectId(tenantId) });
     return { success: true };
   }
 

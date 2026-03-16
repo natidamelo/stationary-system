@@ -21,6 +21,7 @@ function toUser(doc: UserDocument & { role?: RoleDocument } | null) {
     isActive: o.isActive,
     roleId,
     role,
+    tenantId: o.tenantId?.toString(),
     createdAt: o.createdAt,
   };
 }
@@ -94,6 +95,7 @@ export class UsersService {
     fullName: string;
     department?: string;
     roleName: string;
+    tenantId?: string;
   }) {
     const role = await this.roleModel.findOne({ name: data.roleName }).lean();
     if (!role) throw new NotFoundException('Role not found');
@@ -103,13 +105,15 @@ export class UsersService {
       fullName: data.fullName,
       department: data.department,
       roleId: role._id,
+      tenantId: data.tenantId ? new Types.ObjectId(data.tenantId) : undefined,
     });
     return this.findById(created._id.toString());
   }
 
-  async findAll() {
+  async findAll(tenantId: string) {
+    const tid = new Types.ObjectId(tenantId);
     const docs = await this.userModel
-      .find()
+      .find({ tenantId: tid })
       .populate('roleId')
       .sort({ createdAt: -1 })
       .lean();

@@ -3,6 +3,9 @@ import { Document, Types } from 'mongoose';
 
 @Schema({ collection: 'stock_movements' })
 export class StockMovementDocument extends Document {
+  @Prop({ type: Types.ObjectId, ref: 'TenantDocument' })
+  tenantId: Types.ObjectId;
+
   @Prop({ type: Types.ObjectId, ref: 'ItemDocument', required: true })
   itemId: Types.ObjectId;
 

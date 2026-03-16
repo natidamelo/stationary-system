@@ -5,6 +5,8 @@ import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { RolesGuard } from '../guards/roles.guard';
 import { Roles } from '../decorators/roles.decorator';
 import { RoleEnum } from '../common/enums';
+import { CurrentUser } from '../decorators/current-user.decorator';
+import { UserPayload } from '../common/user.types';
 
 @ApiTags('reports')
 @ApiBearerAuth()
@@ -16,15 +18,18 @@ export class ReportsController {
   @Get('stock')
   @UseGuards(RolesGuard)
   @Roles(RoleEnum.DEALER, RoleEnum.ADMIN, RoleEnum.MANAGER)
-  async stockReport() {
-    return this.reports.stockReport();
+  async stockReport(@CurrentUser() user: UserPayload) {
+    return this.reports.stockReport(user.tenantId);
   }
 
   @Get('stock/period')
   @UseGuards(RolesGuard)
   @Roles(RoleEnum.DEALER, RoleEnum.ADMIN, RoleEnum.MANAGER)
-  stockReportByPeriod(@Query('period') period: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly' = 'daily') {
-    return this.reports.stockReportByPeriod(period);
+  stockReportByPeriod(
+    @CurrentUser() user: UserPayload,
+    @Query('period') period: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly' = 'daily'
+  ) {
+    return this.reports.stockReportByPeriod(user.tenantId, period);
   }
 
   @Get('stock/csv')
@@ -32,8 +37,8 @@ export class ReportsController {
   @Roles(RoleEnum.DEALER, RoleEnum.ADMIN, RoleEnum.MANAGER)
   @Header('Content-Type', 'text/csv')
   @Header('Content-Disposition', 'attachment; filename=stock-report.csv')
-  async stockReportCsv() {
-    const rows = await this.reports.stockReport();
+  async stockReportCsv(@CurrentUser() user: UserPayload) {
+    const rows = await this.reports.stockReport(user.tenantId);
     const header = 'SKU,Name,Category,Unit,Reorder Level,Current Stock,Price\n';
     const lines = rows.map(
       (r) =>
@@ -45,58 +50,74 @@ export class ReportsController {
   @Get('financial')
   @UseGuards(RolesGuard)
   @Roles(RoleEnum.DEALER, RoleEnum.ADMIN, RoleEnum.MANAGER)
-  financialSummary(@Query('period') period: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly' = 'monthly') {
-    return this.reports.financialSummary(period);
+  financialSummary(
+    @CurrentUser() user: UserPayload,
+    @Query('period') period: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly' = 'monthly'
+  ) {
+    return this.reports.financialSummary(user.tenantId, period);
   }
 
   @Get('sales')
   @UseGuards(RolesGuard)
   @Roles(RoleEnum.DEALER, RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.RECEPTION)
-  salesReport(@Query('period') period: 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'yearly' = 'daily') {
-    return this.reports.salesReport(period);
+  salesReport(
+    @CurrentUser() user: UserPayload,
+    @Query('period') period: 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'yearly' = 'daily'
+  ) {
+    return this.reports.salesReport(user.tenantId, period);
   }
 
   @Get('business-overview')
   @UseGuards(RolesGuard)
   @Roles(RoleEnum.DEALER, RoleEnum.ADMIN, RoleEnum.MANAGER)
-  businessOverview(@Query('period') period: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly' = 'monthly') {
-    return this.reports.businessOverview(period);
+  businessOverview(
+    @CurrentUser() user: UserPayload,
+    @Query('period') period: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly' = 'monthly'
+  ) {
+    return this.reports.businessOverview(user.tenantId, period);
   }
 
   @Get('cost-profit')
   @UseGuards(RolesGuard)
   @Roles(RoleEnum.DEALER, RoleEnum.ADMIN, RoleEnum.MANAGER)
-  costProfitAnalysis(@Query('period') period: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly' = 'monthly') {
-    return this.reports.costProfitAnalysis(period);
+  costProfitAnalysis(
+    @CurrentUser() user: UserPayload,
+    @Query('period') period: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly' = 'monthly'
+  ) {
+    return this.reports.costProfitAnalysis(user.tenantId, period);
   }
 
   @Get('service-analytics')
   @UseGuards(RolesGuard)
   @Roles(RoleEnum.DEALER, RoleEnum.ADMIN, RoleEnum.MANAGER)
-  serviceAnalytics(@Query('period') period: 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'yearly' = 'monthly') {
-    return this.reports.serviceAnalytics(period);
+  serviceAnalytics(
+    @CurrentUser() user: UserPayload,
+    @Query('period') period: 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'yearly' = 'monthly'
+  ) {
+    return this.reports.serviceAnalytics(user.tenantId, period);
   }
 
   @Get('inventory')
   @UseGuards(RolesGuard)
   @Roles(RoleEnum.DEALER, RoleEnum.ADMIN, RoleEnum.MANAGER)
-  inventoryReport() {
-    return this.reports.inventoryReport();
+  inventoryReport(@CurrentUser() user: UserPayload) {
+    return this.reports.inventoryReport(user.tenantId);
   }
 
   @Post('operating-expenses')
   @UseGuards(RolesGuard)
   @Roles(RoleEnum.DEALER, RoleEnum.ADMIN, RoleEnum.MANAGER)
   createOperatingExpense(
+    @CurrentUser() user: UserPayload,
     @Body() body: { date: string; description: string; amount: number; category?: string },
   ) {
-    return this.reports.createOperatingExpense(body);
+    return this.reports.createOperatingExpense(user.tenantId, body);
   }
 
   @Delete('operating-expenses/:id')
   @UseGuards(RolesGuard)
   @Roles(RoleEnum.DEALER, RoleEnum.ADMIN, RoleEnum.MANAGER)
-  deleteOperatingExpense(@Param('id') id: string) {
-    return this.reports.deleteOperatingExpense(id);
+  deleteOperatingExpense(@Param('id') id: string, @CurrentUser() user: UserPayload) {
+    return this.reports.deleteOperatingExpense(id, user.tenantId);
   }
 }

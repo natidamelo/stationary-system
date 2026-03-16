@@ -4,7 +4,9 @@ import { useMemo } from 'react';
 import { useAuth } from './context/AuthContext';
 import { useSettings } from './context/SettingsContext';
 import Layout from './components/Layout';
+import Landing from './pages/Landing';
 import Login from './pages/Login';
+import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Items from './pages/Items';
 import Categories from './pages/Categories';
@@ -51,6 +53,7 @@ function DealerRoute({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
+  const { user } = useAuth();
   const { themeMode } = useSettings();
 
   const theme = useMemo(
@@ -189,32 +192,38 @@ function App() {
       <CssBaseline />
       <Routes>
         <Route path="/login" element={<Login />} />
-        <Route
-          path="/"
-          element={
-            <PrivateRoute>
-              <Layout />
-            </PrivateRoute>
-          }
-        >
-          <Route index element={<Dashboard />} />
-          <Route path="items" element={<Items />} />
-          <Route path="categories" element={<Categories />} />
-          <Route path="suppliers" element={<Suppliers />} />
-          <Route path="purchase-orders" element={<PurchaseOrders />} />
-          <Route path="purchase-requests" element={<PurchaseRequests />} />
-          <Route path="inventory" element={<Inventory />} />
-          <Route path="distribution" element={<Distribution />} />
-          <Route path="stock-management" element={<StockManagement />} />
-          <Route path="users" element={<Users />} />
-          <Route path="customers" element={<DealerRoute><Customers /></DealerRoute>} />
-          <Route path="licenses" element={<DealerRoute><Licenses /></DealerRoute>} />
-          <Route path="reports" element={<Reports />} />
-          <Route path="reception" element={<Reception />} />
-          <Route path="invoices" element={<Invoices />} />
-          <Route path="services" element={<Services />} />
-          <Route path="audit-logs" element={<AuditLogs />} />
-        </Route>
+        <Route path="/register" element={<Register />} />
+        
+        {!user ? (
+          <Route path="/" element={<Landing />} />
+        ) : (
+          <Route
+            path="/"
+            element={
+              <PrivateRoute>
+                <Layout />
+              </PrivateRoute>
+            }
+          >
+            <Route index element={<Dashboard />} />
+            <Route path="items" element={<Items />} />
+            <Route path="categories" element={<Categories />} />
+            <Route path="suppliers" element={<Suppliers />} />
+            <Route path="purchase-orders" element={<PurchaseOrders />} />
+            <Route path="purchase-requests" element={<PurchaseRequests />} />
+            <Route path="inventory" element={<Inventory />} />
+            <Route path="distribution" element={<Distribution />} />
+            <Route path="stock-management" element={<StockManagement />} />
+            <Route path="users" element={<Users />} />
+            <Route path="customers" element={<DealerRoute><Customers /></DealerRoute>} />
+            <Route path="licenses" element={<DealerRoute><Licenses /></DealerRoute>} />
+            <Route path="reports" element={<Reports />} />
+            <Route path="reception" element={<Reception />} />
+            <Route path="invoices" element={<Invoices />} />
+            <Route path="services" element={<Services />} />
+            <Route path="audit-logs" element={<AuditLogs />} />
+          </Route>
+        )}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </ThemeProvider>

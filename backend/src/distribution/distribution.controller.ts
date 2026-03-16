@@ -39,13 +39,13 @@ export class DistributionController {
   }
 
   @Get()
-  list() {
-    return this.distribution.findAll();
+  list(@CurrentUser() user: UserPayload) {
+    return this.distribution.findAll(user.tenantId);
   }
 
   @Get(':id')
-  get(@Param('id') id: string) {
-    return this.distribution.findOne(id);
+  get(@Param('id') id: string, @CurrentUser() user: UserPayload) {
+    return this.distribution.findOne(id, user.tenantId);
   }
 
   @Post('return/:distributionId')
@@ -56,7 +56,7 @@ export class DistributionController {
     @Body() body: { itemId: string; quantity: number; notes?: string },
     @CurrentUser() user: UserPayload,
   ) {
-    return this.distribution.recordReturn(distributionId, body, user);
+    return this.distribution.recordReturn(distributionId, user.tenantId, body, user);
   }
 
   @Post('damage')

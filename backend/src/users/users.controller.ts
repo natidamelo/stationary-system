@@ -5,6 +5,8 @@ import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { RolesGuard } from '../guards/roles.guard';
 import { Roles } from '../decorators/roles.decorator';
 import { RoleEnum } from '../common/enums';
+import { CurrentUser } from '../decorators/current-user.decorator';
+import { UserPayload } from '../common/user.types';
 
 @ApiTags('users')
 @ApiBearerAuth()
@@ -16,7 +18,7 @@ export class UsersController {
   @Get()
   @UseGuards(RolesGuard)
   @Roles(RoleEnum.DEALER, RoleEnum.ADMIN, RoleEnum.MANAGER)
-  async list() {
-    return this.users.findAll();
+  async list(@CurrentUser() user: UserPayload) {
+    return this.users.findAll(user.tenantId);
   }
 }

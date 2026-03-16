@@ -12,6 +12,9 @@ export type NotificationType =
 
 @Schema({ collection: 'notifications' })
 export class NotificationDocument extends Document {
+  @Prop({ type: Types.ObjectId, ref: 'TenantDocument' })
+  tenantId: Types.ObjectId;
+
   @Prop({ required: true })
   title: string;
 

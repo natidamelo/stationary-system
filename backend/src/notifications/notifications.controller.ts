@@ -1,7 +1,9 @@
-import { Controller, Get, Post, Delete, Param, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Param, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { NotificationsService } from './notifications.service';
+import { CurrentUser } from '../decorators/current-user.decorator';
+import { UserPayload } from '../common/user.types';
 
 @ApiTags('notifications')
 @ApiBearerAuth()
@@ -11,32 +13,32 @@ export class NotificationsController {
     constructor(private notifService: NotificationsService) { }
 
     @Get()
-    getAll(@Req() req: any) {
-        return this.notifService.getForUser(req.user.userId);
+    getAll(@CurrentUser() user: UserPayload) {
+        return this.notifService.getForUser(user.id, user.tenantId);
     }
 
     @Get('unread-count')
-    unreadCount(@Req() req: any) {
-        return this.notifService.getUnreadCount(req.user.userId).then((count) => ({ count }));
+    unreadCount(@CurrentUser() user: UserPayload) {
+        return this.notifService.getUnreadCount(user.id, user.tenantId).then((count) => ({ count }));
     }
 
     @Post(':id/read')
-    markRead(@Param('id') id: string) {
-        return this.notifService.markRead(id);
+    markRead(@Param('id') id: string, @CurrentUser() user: UserPayload) {
+        return this.notifService.markRead(id, user.tenantId);
     }
 
     @Post('mark-all-read')
-    markAllRead(@Req() req: any) {
-        return this.notifService.markAllRead(req.user.userId);
+    markAllRead(@CurrentUser() user: UserPayload) {
+        return this.notifService.markAllRead(user.id, user.tenantId);
     }
 
     @Delete(':id')
-    deleteOne(@Param('id') id: string) {
-        return this.notifService.deleteOne(id);
+    deleteOne(@Param('id') id: string, @CurrentUser() user: UserPayload) {
+        return this.notifService.deleteOne(id, user.tenantId);
     }
 
     @Delete()
-    clearAll(@Req() req: any) {
-        return this.notifService.clearAll(req.user.userId);
+    clearAll(@CurrentUser() user: UserPayload) {
+        return this.notifService.clearAll(user.id, user.tenantId);
     }
 }

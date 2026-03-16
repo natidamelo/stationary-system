@@ -16,31 +16,38 @@ export class CategoriesService {
     return { id: (o._id || doc._id)?.toString(), ...o };
   }
 
-  async create(name: string, description?: string) {
-    const created = await this.model.create({ name, description });
-    return this.toCat(await this.model.findById(created._id).lean());
+  async create(name: string, tenantId: string, description?: string) {
+    const created = await this.model.create({ 
+      name, 
+      description,
+      tenantId: new Types.ObjectId(tenantId)
+    });
+    return this.toCat(await this.model.findOne({ _id: created._id, tenantId: new Types.ObjectId(tenantId) }).lean());
   }
 
-  async findAll() {
-    const docs = await this.model.find().sort({ name: 1 }).lean();
+  async findAll(tenantId: string) {
+    const docs = await this.model.find({ tenantId: new Types.ObjectId(tenantId) }).sort({ name: 1 }).lean();
     return docs.map((d: any) => this.toCat(d));
   }
 
-  async findOne(id: string) {
-    const doc = await this.model.findById(id).lean();
+  async findOne(id: string, tenantId: string) {
+    const doc = await this.model.findOne({ _id: new Types.ObjectId(id), tenantId: new Types.ObjectId(tenantId) }).lean();
     if (!doc) throw new NotFoundException('Category not found');
     return this.toCat(doc);
   }
 
-  async update(id: string, data: { name?: string; description?: string }) {
-    await this.findOne(id);
-    await this.model.updateOne({ _id: new Types.ObjectId(id) }, { $set: data });
-    return this.findOne(id);
+  async update(id: string, tenantId: string, data: { name?: string; description?: string }) {
+    await this.findOne(id, tenantId);
+    await this.model.updateOne(
+      { _id: new Types.ObjectId(id), tenantId: new Types.ObjectId(tenantId) }, 
+      { $set: data }
+    );
+    return this.findOne(id, tenantId);
   }
 
-  async remove(id: string) {
-    await this.findOne(id);
-    await this.model.deleteOne({ _id: new Types.ObjectId(id) });
+  async remove(id: string, tenantId: string) {
+    await this.findOne(id, tenantId);
+    await this.model.deleteOne({ _id: new Types.ObjectId(id), tenantId: new Types.ObjectId(tenantId) });
     return { deleted: true };
   }
 }

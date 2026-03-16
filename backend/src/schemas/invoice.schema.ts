@@ -23,6 +23,9 @@ const InvoiceLineSchema = SchemaFactory.createForClass(InvoiceLineDoc);
 
 @Schema({ collection: 'invoices' })
 export class InvoiceDocument extends Document {
+  @Prop({ type: Types.ObjectId, ref: 'TenantDocument' })
+  tenantId: Types.ObjectId;
+
   @Prop({ required: true, unique: true })
   invoiceNumber: string;
 

@@ -10,12 +10,13 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
-import { ApiProperty } from '@nestjs/swagger';
 import { UploadService } from './upload.service';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { RolesGuard } from '../guards/roles.guard';
 import { Roles } from '../decorators/roles.decorator';
 import { RoleEnum } from '../common/enums';
+import { CurrentUser } from '../decorators/current-user.decorator';
+import { UserPayload } from '../common/user.types';
 
 @ApiTags('upload')
 @ApiBearerAuth()
@@ -40,19 +41,21 @@ export class UploadController {
     },
   })
   async uploadFile(
+    @CurrentUser() user: UserPayload,
     @UploadedFile() file: Express.Multer.File,
     @Body('entityType') entityType?: string,
     @Body('entityId') entityId?: string,
   ) {
     if (!file) return { message: 'No file uploaded' };
-    return this.upload.create(file, entityType, entityId);
+    return this.upload.create(user.tenantId, file, entityType, entityId);
   }
 
   @Get('entity/:entityType/:entityId')
   listByEntity(
+    @CurrentUser() user: UserPayload,
     @Param('entityType') entityType: string,
     @Param('entityId') entityId: string,
   ) {
-    return this.upload.findByEntity(entityType, entityId);
+    return this.upload.findByEntity(user.tenantId, entityType, entityId);
   }
 }

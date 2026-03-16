@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { PurchaseRequestDocument } from '../schemas/purchase-request.schema';
 import { PurchaseOrderDocument } from '../schemas/purchase-order.schema';
 import { SaleDocument } from '../schemas/sale.schema';
@@ -23,12 +23,12 @@ export class DashboardService {
     private inventory: InventoryService,
   ) { }
 
-  async getSalesChart(period: SalesChartPeriod): Promise<SalesChartPoint[]> {
+  async getSalesChart(tenantId: string, period: SalesChartPeriod): Promise<SalesChartPoint[]> {
     try {
-      if (period === 'year') return await this.getSalesChartByYear();
-      if (period === 'month') return await this.getSalesChartByMonth();
-      if (period === 'week') return await this.getSalesChartByWeek();
-      return await this.getSalesChartByDay();
+      if (period === 'year') return await this.getSalesChartByYear(tenantId);
+      if (period === 'month') return await this.getSalesChartByMonth(tenantId);
+      if (period === 'week') return await this.getSalesChartByWeek(tenantId);
+      return await this.getSalesChartByDay(tenantId);
     } catch (err) {
       return [];
     }
@@ -52,13 +52,14 @@ export class DashboardService {
     return `${y}-${m}-${day}`;
   }
 
-  private async getSalesChartByDay(): Promise<SalesChartPoint[]> {
+  private async getSalesChartByDay(tenantId: string): Promise<SalesChartPoint[]> {
+    const tid = new Types.ObjectId(tenantId);
     const start = new Date();
     start.setDate(start.getDate() - 7);
     start.setHours(0, 0, 0, 0);
     // Fetch sales and group in app by local date so "today" matches without MongoDB timezone support
     const sales = await this.saleModel
-      .find({ soldAt: { $gte: start } })
+      .find({ tenantId: tid, soldAt: { $gte: start } })
       .select('soldAt totalAmount')
       .lean();
     const byDate: Record<string, number> = {};
@@ -83,13 +84,14 @@ export class DashboardService {
     return result;
   }
 
-  private async getSalesChartByWeek(): Promise<SalesChartPoint[]> {
+  private async getSalesChartByWeek(tenantId: string): Promise<SalesChartPoint[]> {
+    const tid = new Types.ObjectId(tenantId);
     const weeks = 12;
     const start = new Date();
     start.setDate(start.getDate() - weeks * 7);
     start.setHours(0, 0, 0, 0);
     const pipeline = [
-      { $match: { soldAt: { $gte: start } } },
+      { $match: { tenantId: tid, soldAt: { $gte: start } } },
       {
         $group: {
           _id: { year: { $isoWeekYear: '$soldAt' }, week: { $isoWeek: '$soldAt' } },
@@ -118,14 +120,15 @@ export class DashboardService {
     return result;
   }
 
-  private async getSalesChartByMonth(): Promise<SalesChartPoint[]> {
+  private async getSalesChartByMonth(tenantId: string): Promise<SalesChartPoint[]> {
+    const tid = new Types.ObjectId(tenantId);
     const months = 12;
     const start = new Date();
     start.setMonth(start.getMonth() - months);
     start.setDate(1);
     start.setHours(0, 0, 0, 0);
     const pipeline = [
-      { $match: { soldAt: { $gte: start } } },
+      { $match: { tenantId: tid, soldAt: { $gte: start } } },
       { $group: { _id: { $dateToString: { format: '%Y-%m', date: '$soldAt' } }, revenue: { $sum: '$totalAmount' } } },
       { $sort: { _id: 1 as 1 } },
     ];
@@ -147,14 +150,15 @@ export class DashboardService {
     return result;
   }
 
-  private async getSalesChartByYear(): Promise<SalesChartPoint[]> {
+  private async getSalesChartByYear(tenantId: string): Promise<SalesChartPoint[]> {
+    const tid = new Types.ObjectId(tenantId);
     const years = 5;
     const start = new Date();
     start.setFullYear(start.getFullYear() - years);
     start.setMonth(0, 1);
     start.setHours(0, 0, 0, 0);
     const pipeline = [
-      { $match: { soldAt: { $gte: start } } },
+      { $match: { tenantId: tid, soldAt: { $gte: start } } },
       { $group: { _id: { $year: '$soldAt' }, revenue: { $sum: '$totalAmount' } } },
       { $sort: { _id: 1 as 1 } },
     ];
@@ -174,15 +178,16 @@ export class DashboardService {
     return result;
   }
 
-  async getSummary() {
+  async getSummary(tenantId: string) {
     try {
+      const tid = new Types.ObjectId(tenantId);
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
       const [pendingApprovals, draftPo, lowStockItems, todaySales] = await Promise.all([
-        this.prModel.countDocuments({ status: RequestStatus.PENDING }),
-        this.poModel.countDocuments({ status: POStatus.DRAFT }),
-        this.inventory.getLowStockItems(),
-        this.saleModel.find({ soldAt: { $gte: todayStart } }).select('totalAmount amountPaid').lean(),
+        this.prModel.countDocuments({ tenantId: tid, status: RequestStatus.PENDING }),
+        this.poModel.countDocuments({ tenantId: tid, status: POStatus.DRAFT }),
+        this.inventory.getLowStockItems(tenantId),
+        this.saleModel.find({ tenantId: tid, soldAt: { $gte: todayStart } }).select('totalAmount amountPaid').lean(),
       ]);
       const todaySalesArr = todaySales as any[];
       const todayRevenue = todaySalesArr.reduce((s, d) => s + Number(d.totalAmount ?? 0), 0);
@@ -209,8 +214,8 @@ export class DashboardService {
     }
   }
 
-  async getStockSummary() {
-    const lowStockItems = await this.inventory.getLowStockItems();
+  async getStockSummary(tenantId: string) {
+    const lowStockItems = await this.inventory.getLowStockItems(tenantId);
     return { lowStockItems, totalLowStockCount: lowStockItems.length };
   }
 }

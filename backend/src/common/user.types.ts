@@ -5,4 +5,5 @@ export class UserPayload {
   department?: string;
   role?: { id?: string; name: string };
   isActive?: boolean;
+  tenantId!: string;
 }

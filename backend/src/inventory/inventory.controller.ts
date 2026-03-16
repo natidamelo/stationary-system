@@ -25,24 +25,26 @@ export class InventoryController {
   constructor(private inventory: InventoryService) {}
 
   @Get('balance/:itemId')
-  getBalance(@Param('itemId') itemId: string) {
-    return this.inventory.getBalance(itemId);
+  getBalance(@Param('itemId') itemId: string, @CurrentUser() user: UserPayload) {
+    return this.inventory.getBalance(itemId, user.tenantId);
   }
 
   @Get('movements')
   getMovements(
+    @CurrentUser() user: UserPayload,
     @Query('itemId') itemId?: string,
     @Query('limit') limit?: string,
   ) {
     return this.inventory.getMovements(
+      user.tenantId,
       itemId,
       limit ? parseInt(limit, 10) : 50,
     );
   }
 
   @Get('low-stock')
-  getLowStock() {
-    return this.inventory.getLowStockItems();
+  getLowStock(@CurrentUser() user: UserPayload) {
+    return this.inventory.getLowStockItems(user.tenantId);
   }
 
   @Post('adjustment')

@@ -3,6 +3,9 @@ import { Document, Types } from 'mongoose';
 
 @Schema({ collection: 'users' })
 export class UserDocument extends Document {
+  @Prop({ type: Types.ObjectId, ref: 'TenantDocument' })
+  tenantId: Types.ObjectId;
+
   @Prop({ required: true, unique: true })
   email: string;
 

@@ -13,8 +13,8 @@ export class DistributionService {
     private inventory: InventoryService,
   ) {}
 
-  private async nextDistributionNumber(): Promise<string> {
-    const last = await this.model.findOne().sort({ createdAt: -1 }).lean();
+  private async nextDistributionNumber(tenantId: string): Promise<string> {
+    const last = await this.model.findOne({ tenantId: new Types.ObjectId(tenantId) }).sort({ createdAt: -1 }).lean();
     const num = last ? parseInt(String(last.distributionNumber).replace(/\D/g, ''), 10) + 1 : 1;
     return `DIS-${String(num).padStart(6, '0')}`;
   }
@@ -38,19 +38,22 @@ export class DistributionService {
       notes: o.notes,
       lines,
       createdAt: o.createdAt,
+      tenantId: o.tenantId?.toString(),
     };
   }
 
   async issue(
     body: { issuedToUserId?: string; department?: string; notes?: string; lines: { itemId: string; quantity: number }[] },
-    user: { id: string },
+    user: { id: string; tenantId: string },
   ) {
-    const distNumber = await this.nextDistributionNumber();
+    const tid = new Types.ObjectId(user.tenantId);
+    const distNumber = await this.nextDistributionNumber(user.tenantId);
     const created = await this.model.create({
       distributionNumber: distNumber,
       issuedToUserId: body.issuedToUserId ? new Types.ObjectId(body.issuedToUserId) : undefined,
       department: body.department,
       notes: body.notes,
+      tenantId: tid,
       lines: body.lines.map((l) => ({ itemId: new Types.ObjectId(l.itemId), quantity: l.quantity })),
     });
     for (const l of body.lines) {
@@ -61,22 +64,23 @@ export class DistributionService {
         performedBy: user,
       });
     }
-    return this.findOne(created._id.toString());
+    return this.findOne(created._id.toString(), user.tenantId);
   }
 
-  async findAll() {
-    const docs = await this.model.find().populate('issuedToUserId').populate('lines.itemId').sort({ createdAt: -1 }).lean();
+  async findAll(tenantId: string) {
+    const docs = await this.model.find({ tenantId: new Types.ObjectId(tenantId) }).populate('issuedToUserId').populate('lines.itemId').sort({ createdAt: -1 }).lean();
     return docs.map((d: any) => this.toDist(d));
   }
 
-  async findOne(id: string) {
-    const doc = await this.model.findById(id).populate('issuedToUserId').populate('lines.itemId').lean();
+  async findOne(id: string, tenantId: string) {
+    const doc = await this.model.findOne({ _id: new Types.ObjectId(id), tenantId: new Types.ObjectId(tenantId) })
+      .populate('issuedToUserId').populate('lines.itemId').lean();
     if (!doc) throw new NotFoundException('Distribution not found');
     return this.toDist(doc);
   }
 
-  async recordReturn(distributionId: string, body: { itemId: string; quantity: number; notes?: string }, user: { id: string }) {
-    const dist = await this.findOne(distributionId);
+  async recordReturn(distributionId: string, tenantId: string, body: { itemId: string; quantity: number; notes?: string }, user: { id: string; tenantId: string }) {
+    const dist = await this.findOne(distributionId, tenantId);
     const hasItem = dist?.lines?.some((l: any) => l.itemId === body.itemId || (l.item && l.item.id === body.itemId));
     if (!hasItem) throw new BadRequestException('Item not in this distribution');
     await this.inventory.addMovement(body.itemId, StockMovementType.RETURN, body.quantity, {
@@ -88,7 +92,7 @@ export class DistributionService {
     return { success: true };
   }
 
-  async recordDamage(body: { itemId: string; quantity: number; notes?: string }, user: { id: string }) {
+  async recordDamage(body: { itemId: string; quantity: number; notes?: string }, user: { id: string; tenantId: string }) {
     await this.inventory.addMovement(body.itemId, StockMovementType.DAMAGE, body.quantity, {
       reference: 'damage',
       notes: body.notes,

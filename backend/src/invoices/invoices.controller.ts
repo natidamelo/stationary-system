@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Post, Put, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Post, Put, Body, UseGuards, Request } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { InvoicesService } from './invoices.service';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
@@ -16,15 +16,15 @@ export class InvoicesController {
   @Get()
   @UseGuards(RolesGuard)
   @Roles(RoleEnum.RECEPTION, RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DEALER)
-  list() {
-    return this.invoices.findAll();
+  list(@Request() req: any) {
+    return this.invoices.findAll(req.user.tenantId);
   }
 
   @Get(':id')
   @UseGuards(RolesGuard)
   @Roles(RoleEnum.RECEPTION, RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DEALER)
-  getOne(@Param('id') id: string) {
-    return this.invoices.findOne(id);
+  getOne(@Param('id') id: string, @Request() req: any) {
+    return this.invoices.findOne(id, req.user.tenantId);
   }
 
   @Post('from-sale')
@@ -32,8 +32,9 @@ export class InvoicesController {
   @Roles(RoleEnum.RECEPTION, RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DEALER)
   createFromSale(
     @Body() body: { saleId: string; customerEmail?: string; customerAddress?: string },
+    @Request() req: any
   ) {
-    return this.invoices.createFromSale(body.saleId, {
+    return this.invoices.createFromSale(body.saleId, req.user.tenantId, {
       customerEmail: body.customerEmail,
       customerAddress: body.customerAddress,
     });
@@ -42,7 +43,7 @@ export class InvoicesController {
   @Put(':id/pay')
   @UseGuards(RolesGuard)
   @Roles(RoleEnum.RECEPTION, RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DEALER)
-  markPaid(@Param('id') id: string, @Body() body: { amountPaid?: number }) {
-    return this.invoices.markPaid(id, body.amountPaid);
+  markPaid(@Param('id') id: string, @Body() body: { amountPaid?: number }, @Request() req: any) {
+    return this.invoices.markPaid(id, req.user.tenantId, body.amountPaid);
   }
 }

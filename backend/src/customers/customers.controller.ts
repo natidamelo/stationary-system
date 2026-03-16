@@ -7,6 +7,7 @@ import {
   Post,
   Put,
   UseGuards,
+  Request,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { CustomersService } from './customers.service';
@@ -17,24 +18,26 @@ import { Roles } from '../decorators/roles.decorator';
 @ApiTags('customers')
 @Controller('api/customers')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('dealer')
 @ApiBearerAuth()
 export class CustomersController {
   constructor(private customersService: CustomersService) {}
 
   @Get()
+  @Roles('admin', 'manager', 'reception', 'dealer')
   @ApiOperation({ summary: 'List all customers' })
-  async findAll() {
-    return this.customersService.findAll();
+  async findAll(@Request() req: any) {
+    return this.customersService.findAll(req.user.tenantId);
   }
 
   @Get(':id')
+  @Roles('admin', 'manager', 'reception', 'dealer')
   @ApiOperation({ summary: 'Get customer by ID' })
-  async findOne(@Param('id') id: string) {
-    return this.customersService.findById(id);
+  async findOne(@Param('id') id: string, @Request() req: any) {
+    return this.customersService.findById(id, req.user.tenantId);
   }
 
   @Post()
+  @Roles('admin', 'manager', 'reception', 'dealer')
   @ApiOperation({ summary: 'Create new customer' })
   async create(
     @Body()
@@ -45,11 +48,13 @@ export class CustomersController {
       address?: string;
       notes?: string;
     },
+    @Request() req: any
   ) {
-    return this.customersService.create(body);
+    return this.customersService.create(body, req.user.tenantId);
   }
 
   @Put(':id')
+  @Roles('admin', 'manager', 'reception', 'dealer')
   @ApiOperation({ summary: 'Update customer' })
   async update(
     @Param('id') id: string,
@@ -61,13 +66,15 @@ export class CustomersController {
       address: string;
       notes: string;
     }>,
+    @Request() req: any
   ) {
-    return this.customersService.update(id, body);
+    return this.customersService.update(id, body, req.user.tenantId);
   }
 
   @Delete(':id')
+  @Roles('admin', 'manager', 'dealer')
   @ApiOperation({ summary: 'Delete customer' })
-  async delete(@Param('id') id: string) {
-    return this.customersService.delete(id);
+  async delete(@Param('id') id: string, @Request() req: any) {
+    return this.customersService.delete(id, req.user.tenantId);
   }
 }

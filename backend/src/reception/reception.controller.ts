@@ -18,22 +18,22 @@ export class ReceptionController {
   @Get('dashboard')
   @UseGuards(RolesGuard)
   @Roles(RoleEnum.RECEPTION, RoleEnum.ADMIN, RoleEnum.MANAGER)
-  dashboard() {
-    return this.reception.getDashboard();
+  dashboard(@CurrentUser() user: UserPayload) {
+    return this.reception.getDashboard(user.tenantId);
   }
 
   @Get('sales/unpaid')
   @UseGuards(RolesGuard)
   @Roles(RoleEnum.RECEPTION, RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DEALER)
-  unpaidSales() {
-    return this.reception.getUnpaidSales();
+  unpaidSales(@CurrentUser() user: UserPayload) {
+    return this.reception.getUnpaidSales(user.tenantId);
   }
 
   @Get('sales/today')
   @UseGuards(RolesGuard)
   @Roles(RoleEnum.RECEPTION, RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DEALER)
-  todaysSales() {
-    return this.reception.getTodaysSales();
+  todaysSales(@CurrentUser() user: UserPayload) {
+    return this.reception.getTodaysSales(user.tenantId);
   }
 
   @Post('sell')
@@ -61,6 +61,6 @@ export class ReceptionController {
     @Body() body: { amount: number; paymentMethod?: string },
     @CurrentUser() user: UserPayload,
   ) {
-    return this.reception.recordPayment(saleId, body, user);
+    return this.reception.recordPayment(saleId, user.tenantId, body, user);
   }
 }
