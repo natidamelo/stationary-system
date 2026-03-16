@@ -3,7 +3,7 @@ import {
   IsString,
   IsOptional,
   IsNumber,
-  IsUUID,
+  IsMongoId,
   Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -19,7 +19,7 @@ export class CreateItemDto {
 
   @ApiPropertyOptional()
   @IsOptional()
-  @IsUUID()
+  @IsMongoId()
   categoryId?: string;
 
   @ApiPropertyOptional({ default: 'unit' })
