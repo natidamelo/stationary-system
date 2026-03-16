@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { NotificationDocument } from '../schemas/notification.schema';
+import { toObjectId } from '../common/utils';
 
 @Injectable()
 export class NotificationsService {
@@ -18,30 +19,35 @@ export class NotificationsService {
         tenantId: string;
         link?: string;
     }) {
+        const tid = toObjectId(data.tenantId);
+        if (!tid) return null;
         return this.notifModel.create({
             title: data.title,
             message: data.message,
             type: data.type,
-            userId: data.userId ? new Types.ObjectId(data.userId) : undefined,
-            tenantId: new Types.ObjectId(data.tenantId),
+            userId: toObjectId(data.userId) || undefined,
+            tenantId: tid,
             link: data.link,
         });
     }
 
     async broadcast(data: { title: string; message: string; type: string; tenantId: string; link?: string }) {
+        const tid = toObjectId(data.tenantId);
+        if (!tid) return null;
         return this.notifModel.create({
             title: data.title,
             message: data.message,
             type: data.type,
-            tenantId: new Types.ObjectId(data.tenantId),
+            tenantId: tid,
             link: data.link,
         });
     }
 
     /** Get notifications for a specific user within their tenant (their own + tenant broadcast) */
     async getForUser(userId: string, tenantId: string, limit = 50) {
-        const userObjId = new Types.ObjectId(userId);
-        const tid = new Types.ObjectId(tenantId);
+        const userObjId = toObjectId(userId);
+        const tid = toObjectId(tenantId);
+        if (!tid || !userObjId) return [];
         return this.notifModel
             .find({ 
                 tenantId: tid,
@@ -53,8 +59,9 @@ export class NotificationsService {
     }
 
     async getUnreadCount(userId: string, tenantId: string): Promise<number> {
-        const userObjId = new Types.ObjectId(userId);
-        const tid = new Types.ObjectId(tenantId);
+        const userObjId = toObjectId(userId);
+        const tid = toObjectId(tenantId);
+        if (!tid || !userObjId) return 0;
         return this.notifModel.countDocuments({
             tenantId: tid,
             isRead: false,
@@ -63,16 +70,20 @@ export class NotificationsService {
     }
 
     async markRead(id: string, tenantId: string) {
+        const nid = toObjectId(id);
+        const tid = toObjectId(tenantId);
+        if (!nid || !tid) return null;
         return this.notifModel.findOneAndUpdate(
-            { _id: new Types.ObjectId(id), tenantId: new Types.ObjectId(tenantId) }, 
+            { _id: nid, tenantId: tid }, 
             { isRead: true }, 
             { new: true }
         );
     }
 
     async markAllRead(userId: string, tenantId: string) {
-        const userObjId = new Types.ObjectId(userId);
-        const tid = new Types.ObjectId(tenantId);
+        const userObjId = toObjectId(userId);
+        const tid = toObjectId(tenantId);
+        if (!tid || !userObjId) return null;
         return this.notifModel.updateMany(
             {
                 tenantId: tid,
@@ -84,15 +95,19 @@ export class NotificationsService {
     }
 
     async deleteOne(id: string, tenantId: string) {
+        const nid = toObjectId(id);
+        const tid = toObjectId(tenantId);
+        if (!nid || !tid) return null;
         return this.notifModel.deleteOne({ 
-            _id: new Types.ObjectId(id), 
-            tenantId: new Types.ObjectId(tenantId) 
+            _id: nid, 
+            tenantId: tid 
         });
     }
 
     async clearAll(userId: string, tenantId: string) {
-        const userObjId = new Types.ObjectId(userId);
-        const tid = new Types.ObjectId(tenantId);
+        const userObjId = toObjectId(userId);
+        const tid = toObjectId(tenantId);
+        if (!tid || !userObjId) return null;
         return this.notifModel.deleteMany({
             tenantId: tid,
             $or: [{ userId: userObjId }, { userId: null }, { userId: { $exists: false } }],

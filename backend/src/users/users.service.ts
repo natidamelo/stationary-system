@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { UserDocument } from '../schemas/user.schema';
 import { RoleDocument } from '../schemas/role.schema';
+import { toObjectId } from '../common/utils';
 
 function toUser(doc: UserDocument & { role?: RoleDocument } | null) {
   if (!doc) return null;
@@ -64,22 +65,28 @@ export class UsersService {
   }
 
   async setPasswordReset(userId: string, token: string, expires: Date): Promise<void> {
+    const uid = toObjectId(userId);
+    if (!uid) return;
     await this.userModel.updateOne(
-      { _id: new Types.ObjectId(userId) },
+      { _id: uid },
       { $set: { passwordResetToken: token, passwordResetExpires: expires } },
     );
   }
 
   async clearPasswordReset(userId: string): Promise<void> {
+    const uid = toObjectId(userId);
+    if (!uid) return;
     await this.userModel.updateOne(
-      { _id: new Types.ObjectId(userId) },
+      { _id: uid },
       { $unset: { passwordResetToken: 1, passwordResetExpires: 1 } },
     );
   }
 
   async updatePassword(userId: string, passwordHash: string): Promise<void> {
+    const uid = toObjectId(userId);
+    if (!uid) return;
     await this.userModel.updateOne(
-      { _id: new Types.ObjectId(userId) },
+      { _id: uid },
       { $set: { passwordHash } },
     );
   }
@@ -105,13 +112,14 @@ export class UsersService {
       fullName: data.fullName,
       department: data.department,
       roleId: role._id,
-      tenantId: data.tenantId ? new Types.ObjectId(data.tenantId) : undefined,
+      tenantId: toObjectId(data.tenantId) || undefined,
     });
     return this.findById(created._id.toString());
   }
 
   async findAll(tenantId: string) {
-    const tid = new Types.ObjectId(tenantId);
+    const tid = toObjectId(tenantId);
+    if (!tid) return [];
     const docs = await this.userModel
       .find({ tenantId: tid })
       .populate('roleId')

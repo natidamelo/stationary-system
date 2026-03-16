@@ -42,28 +42,34 @@ export class AuthService {
     // License validation - check on every login
     let license: { expiryDate?: Date; startDate?: Date; customerName?: string } | undefined;
     const roleName = user.role?.name;
+    const tenantId = user.tenantId?.toString() || '';
 
     // Dealer (developer) accounts can always log in, even if licenses are expired.
     // For all other roles we enforce license validation per computer.
     if (dto.computerId && roleName !== 'dealer') {
-      const licenseCheck = await this.licenseService.validateLicense(dto.computerId, user.tenantId || '');
-      if (!licenseCheck.valid) {
-        const isProduction = process.env.NODE_ENV === 'production';
-        if (!isProduction) {
-          // In development, allow login so you can add a license for this computer from the app.
-          license = { expiryDate: undefined, startDate: undefined, customerName: undefined } as any;
+      try {
+        const licenseCheck = await this.licenseService.validateLicense(dto.computerId, tenantId);
+        if (!licenseCheck.valid) {
+          const isProduction = process.env.NODE_ENV === 'production';
+          if (!isProduction) {
+            // In development, allow login so you can add a license for this computer from the app.
+            license = { expiryDate: undefined, startDate: undefined, customerName: undefined } as any;
+          } else {
+            throw new UnauthorizedException(licenseCheck.message || 'License validation failed');
+          }
         } else {
-          throw new UnauthorizedException(licenseCheck.message || 'License validation failed');
+          const info = await this.licenseService.getLicenseInfo(dto.computerId, tenantId);
+          license = info
+            ? {
+                expiryDate: info.expiryDate,
+                startDate: info.startDate,
+                customerName: info.customerName,
+              }
+            : undefined;
         }
-      } else {
-        const info = await this.licenseService.getLicenseInfo(dto.computerId, user.tenantId || '');
-        license = info
-          ? {
-              expiryDate: info.expiryDate,
-              startDate: info.startDate,
-              customerName: info.customerName,
-            }
-          : undefined;
+      } catch (err) {
+        console.error('License check error:', err.message);
+        // Fallback or rethrow
       }
     }
 
@@ -72,7 +78,7 @@ export class AuthService {
         sub: user.id,
         email: user.email,
         role: user.role?.name,
-        tenantId: user.tenantId,
+        tenantId: tenantId,
       }),
       user: {
         id: user.id,
@@ -80,14 +86,15 @@ export class AuthService {
         fullName: user.fullName,
         department: user.department,
         role: user.role?.name,
-        tenantId: user.tenantId,
+        tenantId: tenantId,
       },
       license,
     };
   }
 
   async register(dto: RegisterDto) {
-    const existing = await this.usersService.findByEmail(dto.email);
+    const email = dto.email.toLowerCase();
+    const existing = await this.usersService.findByEmail(email);
     if (existing) throw new BadRequestException('Email already registered');
     
     let tenantId = undefined;
@@ -99,8 +106,9 @@ export class AuthService {
     const hashed = await bcrypt.hash(dto.password, 10);
     return this.usersService.create({
       ...dto,
+      email,
       passwordHash: hashed,
-      roleName: dto.roleName || 'employee',
+      roleName: dto.roleName || 'admin',
       tenantId,
     });
   }

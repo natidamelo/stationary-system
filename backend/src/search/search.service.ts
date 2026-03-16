@@ -6,6 +6,8 @@ import { SupplierDocument } from '../schemas/supplier.schema';
 import { PurchaseOrderDocument } from '../schemas/purchase-order.schema';
 import { PurchaseRequestDocument } from '../schemas/purchase-request.schema';
 
+import { toObjectId } from '../common/utils';
+
 @Injectable()
 export class SearchService {
   constructor(
@@ -23,7 +25,8 @@ export class SearchService {
     if (!q?.trim() || q.trim().length < 2) {
       return { items: [], suppliers: [], purchaseOrders: [], purchaseRequests: [] };
     }
-    const tid = new Types.ObjectId(tenantId);
+    const tid = toObjectId(tenantId);
+    if (!tid) return { items: [], suppliers: [], purchaseOrders: [], purchaseRequests: [] };
     const term = new RegExp(q.trim(), 'i');
     const [items, suppliers, purchaseOrders, purchaseRequests] = await Promise.all([
       this.itemModel.find({ tenantId: tid, $or: [{ name: term }, { sku: term }] }).populate('categoryId').limit(20).lean(),

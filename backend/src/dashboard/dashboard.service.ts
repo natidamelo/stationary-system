@@ -7,6 +7,7 @@ import { SaleDocument } from '../schemas/sale.schema';
 import { RequestStatus } from '../common/enums';
 import { POStatus } from '../common/enums';
 import { InventoryService } from '../inventory/inventory.service';
+import { toObjectId } from '../common/utils';
 
 export type SalesChartPeriod = 'day' | 'week' | 'month' | 'year';
 export type SalesChartPoint = { label: string; revenue: number; date: string };
@@ -25,6 +26,7 @@ export class DashboardService {
 
   async getSalesChart(tenantId: string, period: SalesChartPeriod): Promise<SalesChartPoint[]> {
     try {
+      if (!toObjectId(tenantId)) return [];
       if (period === 'year') return await this.getSalesChartByYear(tenantId);
       if (period === 'month') return await this.getSalesChartByMonth(tenantId);
       if (period === 'week') return await this.getSalesChartByWeek(tenantId);
@@ -53,7 +55,8 @@ export class DashboardService {
   }
 
   private async getSalesChartByDay(tenantId: string): Promise<SalesChartPoint[]> {
-    const tid = new Types.ObjectId(tenantId);
+    const tid = toObjectId(tenantId);
+    if (!tid) return [];
     const start = new Date();
     start.setDate(start.getDate() - 7);
     start.setHours(0, 0, 0, 0);
@@ -85,7 +88,8 @@ export class DashboardService {
   }
 
   private async getSalesChartByWeek(tenantId: string): Promise<SalesChartPoint[]> {
-    const tid = new Types.ObjectId(tenantId);
+    const tid = toObjectId(tenantId);
+    if (!tid) return [];
     const weeks = 12;
     const start = new Date();
     start.setDate(start.getDate() - weeks * 7);
@@ -121,7 +125,8 @@ export class DashboardService {
   }
 
   private async getSalesChartByMonth(tenantId: string): Promise<SalesChartPoint[]> {
-    const tid = new Types.ObjectId(tenantId);
+    const tid = toObjectId(tenantId);
+    if (!tid) return [];
     const months = 12;
     const start = new Date();
     start.setMonth(start.getMonth() - months);
@@ -151,7 +156,8 @@ export class DashboardService {
   }
 
   private async getSalesChartByYear(tenantId: string): Promise<SalesChartPoint[]> {
-    const tid = new Types.ObjectId(tenantId);
+    const tid = toObjectId(tenantId);
+    if (!tid) return [];
     const years = 5;
     const start = new Date();
     start.setFullYear(start.getFullYear() - years);
@@ -180,7 +186,8 @@ export class DashboardService {
 
   async getSummary(tenantId: string) {
     try {
-      const tid = new Types.ObjectId(tenantId);
+      const tid = toObjectId(tenantId);
+      if (!tid) throw new Error('Invalid tenantId');
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
       const [pendingApprovals, draftPo, lowStockItems, todaySales] = await Promise.all([

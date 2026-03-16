@@ -9,12 +9,10 @@ import { Model, Types } from 'mongoose';
 import { randomBytes } from 'crypto';
 import { LicenseDocument } from '../schemas/license.schema';
 import { CustomerDocument } from '../schemas/customer.schema';
+import { toObjectId } from '../common/utils';
 
 function formatLicenseKey(raw: string): string {
-  const segments: string[] = [];
-  for (let i = 0; i < 4; i++) {
-    segments.push(raw.slice(i * 5, (i + 1) * 5).toUpperCase());
-  }
+// ... segments loop
   return segments.join('-');
 }
 
@@ -40,11 +38,41 @@ export class LicenseService {
     customerName?: string;
     licenseKey?: string;
   } | null> {
-    const tid = new Types.ObjectId(tenantId);
+    const tid = toObjectId(tenantId);
+    if (!tid) return { valid: false, message: 'Invalid tenant ID.' };
     const license = await this.licenseModel
       .findOne({ tenantId: tid, computerId, status: 'active' })
       .populate('customerId')
       .lean();
+// ... logic
+  }
+
+  async validateLicense(computerId: string, tenantId: string): Promise<{ valid: boolean; message?: string }> {
+    const tid = toObjectId(tenantId);
+    if (!tid) return { valid: false, message: 'Invalid tenant context' };
+    // First-time setup: if no licenses exist, allow login (admin can create licenses)
+    const anyLicense = await this.licenseModel.countDocuments({ tenantId: tid }).lean();
+    if (anyLicense === 0) return { valid: true };
+
+    const license = await this.licenseModel
+      .findOne({ tenantId: tid, computerId, status: 'active' })
+      .populate('customerId')
+      .lean();
+// ... logic
+  }
+
+  async generateLicense(tenantId: string, data: {
+    customerId: string;
+    computerId: string;
+    startDate?: Date;
+    durationYears?: number;
+    duration?: number;
+    durationUnit?: 'day' | 'month' | 'year';
+    expiryDate?: Date | string;
+  }): Promise<{ licenseKey: string; licence: any }> {
+    const tid = toObjectId(tenantId);
+    if (!tid) throw new BadRequestException('Invalid tenant');
+    const customer = await this.customerModel.findOne({ _id: toObjectId(data.customerId), tenantId: tid }).lean();
 
     if (!license) return { valid: false, message: 'No valid license found for this computer.' };
 
