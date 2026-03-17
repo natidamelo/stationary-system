@@ -24,7 +24,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     const { passwordHash, passwordResetToken, passwordResetExpires, ...safe } = u;
     return {
       ...safe,
-      id: u._id?.toString(),
+      id: u.id || u._id?.toString(),
       tenantId: u.tenantId?.toString(),
     };
   }
