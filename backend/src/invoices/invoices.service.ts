@@ -17,11 +17,24 @@ export class InvoicesService {
   private async nextInvoiceNumber(tenantId: string): Promise<string> {
     const tid = toObjectId(tenantId);
     if (!tid) return `INV-${Date.now()}`;
-    const last = await this.invoiceModel.findOne({ tenantId: tid }).sort({ issueDate: -1 }).lean();
-    const num = last
-      ? parseInt(String((last as any).invoiceNumber).replace(/\D/g, ''), 10) + 1
-      : 1;
-    return `INV-${String(num).padStart(6, '0')}`;
+    
+    const last = await this.invoiceModel
+      .findOne({ tenantId: tid })
+      .sort({ createdAt: -1 })
+      .lean();
+      
+    let num = 1;
+    if (last && last.invoiceNumber) {
+        const match = last.invoiceNumber.match(/-(\d+)-/);
+        if (match) {
+            num = parseInt(match[1], 10) + 1;
+        }
+    }
+
+    // Format: INV-[TenantPrefix]-[Sequence]-[Timestamp]
+    const prefix = tenantId.substring(0, 4).toUpperCase();
+    const ts = Date.now().toString().substring(7);
+    return `INV-${prefix}-${String(num).padStart(5, '0')}-${ts}`;
   }
 
   private toInvoice(doc: any) {
@@ -70,56 +83,58 @@ export class InvoicesService {
   }
 
   async createFromSale(saleId: string, tenantId: string, options?: { customerEmail?: string; customerAddress?: string }): Promise<any> {
-    const tid = toObjectId(tenantId);
-    const sid = toObjectId(saleId);
-    if (!tid || !sid) throw new BadRequestException('Invalid IDs');
+    try {
+      const tid = toObjectId(tenantId);
+      const sid = toObjectId(saleId);
+      if (!tid || !sid) throw new BadRequestException('Invalid IDs for invoice');
 
-    const sale = await this.saleModel
-      .findOne({ _id: sid, tenantId: tid })
-      .populate('lines.itemId', 'name sku')
-      .populate('lines.serviceId', 'name')
-      .lean();
-    if (!sale) throw new BadRequestException('Sale not found');
-    const existing = await this.invoiceModel.findOne({ saleId: sid, tenantId: tid }).lean();
-    if (existing) {
-      return this.toInvoice(
-        await this.invoiceModel
-          .findOne({ _id: existing._id, tenantId: tid })
-          .populate('saleId', 'saleNumber soldAt totalAmount amountPaid')
-          .lean(),
-      );
+      const sale = await this.saleModel
+        .findOne({ _id: sid, tenantId: tid })
+        .populate('lines.itemId')
+        .populate('lines.serviceId')
+        .lean();
+        
+      if (!sale) throw new BadRequestException(`Sale not found with ID: ${saleId}`);
+      
+      const existing = await this.invoiceModel.findOne({ saleId: sid, tenantId: tid }).lean();
+      if (existing) {
+        return this.findOne(existing._id.toString(), tenantId);
+      }
+
+      const o = sale as any;
+      const lines = (o.lines || []).map((l: any) => ({
+        description: l.itemId?.name ?? l.serviceId?.name ?? 'Generic Item',
+        sku: l.itemId?.sku,
+        quantity: l.quantity,
+        unitPrice: l.unitPrice,
+        total: l.total ?? (l.quantity * l.unitPrice),
+      }));
+
+      const totalAmount = Number(o.totalAmount ?? 0);
+      const amountPaid = Number(o.amountPaid ?? 0);
+      const invoiceNumber = await this.nextInvoiceNumber(tenantId);
+
+      const created = await this.invoiceModel.create({
+        invoiceNumber,
+        saleId: sid,
+        issueDate: new Date(),
+        customerName: o.customerName || 'Walk-in Customer',
+        customerEmail: options?.customerEmail,
+        customerAddress: options?.customerAddress,
+        lines,
+        totalAmount,
+        amountPaid,
+        status: amountPaid >= totalAmount ? 'paid' : 'sent',
+        notes: o.notes,
+        tenantId: tid,
+      });
+
+      return this.findOne(created._id.toString(), tenantId);
+    } catch (err: any) {
+      console.error('Invoice Creation Error:', err);
+      if (err.status) throw err;
+      throw new BadRequestException(`Failed to generate invoice: ${err.message || String(err)}`);
     }
-    const o = sale as any;
-    const lines = (o.lines || []).map((l: any) => ({
-      description: l.itemId?.name ?? l.serviceId?.name ?? 'Item',
-      sku: l.itemId?.sku,
-      quantity: l.quantity,
-      unitPrice: l.unitPrice,
-      total: l.total ?? l.quantity * l.unitPrice,
-    }));
-    const totalAmount = Number(o.totalAmount ?? 0);
-    const amountPaid = Number(o.amountPaid ?? 0);
-    const invoiceNumber = await this.nextInvoiceNumber(tenantId);
-    const created = await this.invoiceModel.create({
-      invoiceNumber,
-      saleId: sid,
-      issueDate: new Date(),
-      customerName: o.customerName,
-      customerEmail: options?.customerEmail,
-      customerAddress: options?.customerAddress,
-      lines,
-      totalAmount,
-      amountPaid,
-      status: amountPaid >= totalAmount ? 'paid' : 'sent',
-      notes: o.notes,
-      tenantId: tid,
-    });
-    return this.toInvoice(
-      await this.invoiceModel
-        .findOne({ _id: created._id, tenantId: tid })
-        .populate('saleId', 'saleNumber soldAt totalAmount amountPaid')
-        .lean(),
-    );
   }
 
   async markPaid(id: string, tenantId: string, amountPaid?: number): Promise<any> {
