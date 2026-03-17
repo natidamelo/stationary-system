@@ -39,6 +39,7 @@ import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import ReceiptLongRoundedIcon from '@mui/icons-material/ReceiptLongRounded';
 import SecurityRoundedIcon from '@mui/icons-material/SecurityRounded';
 import MenuRoundedIcon from '@mui/icons-material/MenuRounded';
+import BusinessRoundedIcon from '@mui/icons-material/BusinessRounded';
 import LightModeRoundedIcon from '@mui/icons-material/LightModeRounded';
 import DarkModeRoundedIcon from '@mui/icons-material/DarkModeRounded';
 import KeyboardArrowUpRoundedIcon from '@mui/icons-material/KeyboardArrowUpRounded';
@@ -63,6 +64,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/distribution': 'Distribution',
   '/users': 'Users',
   '/customers': 'Customers',
+  '/registered-tenants': 'Registered Tenants',
   '/licenses': 'Licenses',
   '/reports': 'Reports',
   '/reception': 'Reception',
@@ -81,6 +83,7 @@ const NAV_ICONS: Record<string, React.ReactNode> = {
   'My Requests': <AssignmentRoundedIcon fontSize="small" />,
   'Approvals': <CheckCircleRoundedIcon fontSize="small" />,
   'Customers': <GroupRoundedIcon fontSize="small" />,
+  'Registered Tenants': <BusinessRoundedIcon fontSize="small" />,
   'Licenses': <VpnKeyRoundedIcon fontSize="small" />,
   'User Management': <PeopleRoundedIcon fontSize="small" />,
   'Services': <BuildRoundedIcon fontSize="small" />,
@@ -135,6 +138,7 @@ export default function Layout() {
     { to: '/purchase-requests', end: false, label: 'My Requests' },
     ...(role === 'admin' || role === 'manager' || role === 'dealer' ? [{ to: '/purchase-requests?pending=1', end: false, label: 'Approvals' }] : []),
     ...(role === 'dealer' ? [{ to: '/customers', end: false, label: 'Customers' }] : []),
+    ...(role === 'dealer' ? [{ to: '/registered-tenants', end: false, label: 'Registered Tenants' }] : []),
     ...(role === 'dealer' ? [{ to: '/licenses', end: false, label: 'Licenses' }] : []),
     ...(role === 'admin' || role === 'manager' || role === 'dealer' ? [{ to: '/users', end: false, label: 'User Management' }] : []),
     ...(role === 'admin' || role === 'manager' || role === 'dealer' ? [{ to: '/services', end: false, label: 'Services' }] : []),

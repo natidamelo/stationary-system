@@ -11,7 +11,7 @@ export class LicenseDocument extends Document {
   @Prop({ required: true, unique: true })
   licenseKey: string;
 
-  @Prop({ type: Types.ObjectId, ref: 'CustomerDocument', required: true })
+  @Prop({ type: Types.ObjectId, ref: 'CustomerDocument', required: false, default: null })
   customerId: Types.ObjectId;
 
   @Prop({ required: true })
