@@ -36,23 +36,28 @@ export class CategoriesService {
   }
 
   async create(name: string, tenantId: string, description?: string) {
-    console.log(`[CategoriesService] Creating category: "${name}" for tenant: "${tenantId}"`);
+    const cleanTenantId = (tenantId || '').trim();
+    console.log(`[CategoriesService] Creating category: "${name}" for cleanTenantId: "${cleanTenantId}"`);
+    
     try {
-      const tid = toObjectId(tenantId);
-      if (!tid) throw new BadRequestException('Tenant ID is required to create categories');
+      const tid = toObjectId(cleanTenantId);
+      if (!tid && cleanTenantId !== 'system' && cleanTenantId !== 'admin') {
+         // If it's not a valid ObjectId and not a special reserved string, reject it
+         throw new BadRequestException(`Invalid or missing Tenant ID (${cleanTenantId})`);
+      }
       
       const created = await this.model.create({ 
         name, 
         description,
-        tenantId: tid
+        tenantId: tid || cleanTenantId // Store as ObjectId if possible, else string
       });
       
       console.log(`[CategoriesService] Created category with ID: ${created._id}`);
       return this.toCat(created);
     } catch (error: any) {
       if (error.code === 11000) {
-        console.warn(`[CategoriesService] Duplicate name for tenant: "${tenantId}", name: "${name}"`);
-        throw new BadRequestException(`Category with name "${name}" already exists`);
+        console.warn(`[CategoriesService] Duplicate category detected. Name: "${name}", Tenant: "${cleanTenantId}"`);
+        throw new BadRequestException(`Category "${name}" already exists for this account (Tenant: ${cleanTenantId || 'None'}). if you don't see it in the list, please refresh.`);
       }
       if (error.name === 'ValidationError') {
         const messages = Object.values(error.errors).map((err: any) => err.message);
@@ -65,15 +70,26 @@ export class CategoriesService {
 
   async findAll(tenantId: string) {
     try {
-      const tid = toObjectId(tenantId);
-      if (!tid) {
-        console.warn(`[CategoriesService] findAll: No valid tenantId provided ("${tenantId}"), returning empty list`);
-        return [];
-      }
+      const cleanTenantId = (tenantId || '').trim();
+      const tid = toObjectId(cleanTenantId);
       
-      const docs = await this.model.find({ tenantId: tid }).sort({ name: 1 }).lean().exec();
+      // Query for both ObjectId and string version of tenantId to be ultra-safe
+      const query: any = {
+        $or: [
+          { tenantId: tid },
+          { tenantId: cleanTenantId }
+        ]
+      };
+      
+      // If no valid ID provided, only return those specifically marked with null/empty tenantId
+      if (!tid && !cleanTenantId) {
+        query.$or = [{ tenantId: null }, { tenantId: '' }, { tenantId: { $exists: false } }];
+      }
+
+      const docs = await this.model.find(query).sort({ name: 1 }).lean().exec();
       const mapped = docs.map((d: any) => this.toCat(d)).filter(Boolean);
-      console.log(`[CategoriesService] findAll: Found ${docs.length} docs, mapped to ${mapped.length} valid categories for tenant: "${tenantId}"`);
+      
+      console.log(`[CategoriesService] findAll: Found ${docs.length} docs for tenant: "${cleanTenantId}"`);
       return mapped;
     } catch (error) {
       console.error('CategoriesService.findAll error:', error);
