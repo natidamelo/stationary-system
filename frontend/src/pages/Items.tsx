@@ -261,14 +261,20 @@ export default function Items() {
   };
 
   const handleDeleteItem = async (item: Item) => {
+    console.log('[Items] Attempting to delete item:', item);
     if (!window.confirm(`Are you sure you want to delete "${item.name}" (${item.sku})?`)) {
       return;
     }
     try {
+      console.log('[Items] Calling delete API for:', item.id);
       await api.delete(`/items/${item.id}`);
-      load();
+      console.log('[Items] Delete successful');
+      await load();
+      alert(`Item "${item.name}" deleted successfully.`);
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to delete item');
+      console.error('[Items] Failed to delete item:', err);
+      const msg = err.response?.data?.message || 'Failed to delete item';
+      alert(msg);
     }
   };
 

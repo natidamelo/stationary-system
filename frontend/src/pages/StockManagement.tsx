@@ -436,17 +436,30 @@ export default function StockManagement() {
   };
 
   const handleDeleteItem = async (item: StockItem) => {
-    if (!window.confirm(`Are you sure you want to delete "${item.name}" (${item.sku})? This will hide the item from current stock but preserve historical data.`)) {
+    console.log('[StockManagement] Attempting to delete item:', item);
+    if (!item.id) {
+      console.error('[StockManagement] Item ID is missing', item);
+      alert('Error: Item ID is missing.');
+      return;
+    }
+
+    const confirmMsg = `Are you sure you want to delete "${item.name}" (${item.sku})?\n\nThis will hide the item from the system but preserve its history.`;
+    if (!window.confirm(confirmMsg)) {
       return;
     }
     
     try {
+      console.log('[StockManagement] Calling delete API for:', item.id);
       await api.delete(`/items/${item.id}`);
-      loadData();
+      console.log('[StockManagement] Delete successful');
+      await loadData();
+      alert(`Item "${item.name}" deleted successfully.`);
     } catch (e: any) {
-      console.error('Failed to delete item:', e);
+      console.error('[StockManagement] Failed to delete item:', e);
       const msg = e.response?.data?.message;
-      setError(Array.isArray(msg) ? msg.join(', ') : (msg || 'Failed to delete item.'));
+      const errorStr = Array.isArray(msg) ? msg.join(', ') : (msg || 'Failed to delete item.');
+      setError(errorStr);
+      alert('Failed to delete item: ' + errorStr);
     }
   };
 
