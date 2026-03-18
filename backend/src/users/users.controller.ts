@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, Patch, Param, Delete } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags, ApiOperation } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
@@ -36,5 +36,21 @@ export class UsersController {
       passwordHash: hashed,
       tenantId: user.tenantId,
     });
+  }
+
+  @Patch(':id/status')
+  @UseGuards(RolesGuard)
+  @Roles(RoleEnum.DEALER, RoleEnum.ADMIN)
+  @ApiOperation({ summary: 'Update user status (active/inactive)' })
+  async updateStatus(@Param('id') id: string, @Body('isActive') isActive: boolean) {
+    return this.users.updateStatus(id, isActive);
+  }
+
+  @Delete(':id')
+  @UseGuards(RolesGuard)
+  @Roles(RoleEnum.DEALER, RoleEnum.ADMIN)
+  @ApiOperation({ summary: 'Delete a user' })
+  async remove(@Param('id') id: string) {
+    return this.users.remove(id);
   }
 }

@@ -138,4 +138,20 @@ export class UsersService {
       } as any);
     });
   }
+
+  async updateStatus(userId: string, isActive: boolean) {
+    const uid = toObjectId(userId);
+    if (!uid) throw new NotFoundException('User not found');
+    const updated = await this.userModel.findByIdAndUpdate(uid, { isActive }, { new: true });
+    if (!updated) throw new NotFoundException('User not found');
+    return toUser(updated as any);
+  }
+
+  async remove(userId: string) {
+    const uid = toObjectId(userId);
+    if (!uid) throw new NotFoundException('User not found');
+    const deleted = await this.userModel.findByIdAndDelete(uid);
+    if (!deleted) throw new NotFoundException('User not found');
+    return { success: true };
+  }
 }

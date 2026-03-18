@@ -22,7 +22,7 @@ import {
   CircularProgress,
   Chip,
 } from '@mui/material';
-import { Add as AddIcon, Refresh as RefreshIcon, Person as PersonIcon } from '@mui/icons-material';
+import { Add as AddIcon, Refresh as RefreshIcon, Person as PersonIcon, Delete as DeleteIcon, Block as BlockIcon, CheckCircle as CheckCircleIcon } from '@mui/icons-material';
 import { api } from '../api/client';
 
 type UserRow = {
@@ -101,6 +101,25 @@ export default function Users() {
     }
   };
 
+  const handleToggleStatus = async (id: string, currentStatus: boolean) => {
+    try {
+      await api.patch(`/users/${id}/status`, { isActive: !currentStatus });
+      fetchUsers();
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Failed to update status');
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this user?')) return;
+    try {
+      await api.delete(`/users/${id}`);
+      fetchUsers();
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Failed to delete user');
+    }
+  };
+
   return (
     <Box sx={{ p: 3 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
@@ -164,12 +183,13 @@ export default function Users() {
               <TableCell>Department</TableCell>
               <TableCell>Role</TableCell>
               <TableCell>Status</TableCell>
+              <TableCell align="right">Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={5} align="center" sx={{ py: 8 }}>
+                <TableCell colSpan={6} align="center" sx={{ py: 8 }}>
                   <CircularProgress size={24} sx={{ mb: 1 }} />
                   <Typography variant="body2" color="text.secondary">
                     Loading users...
@@ -178,7 +198,7 @@ export default function Users() {
               </TableRow>
             ) : list.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} align="center" sx={{ py: 8 }}>
+                <TableCell colSpan={6} align="center" sx={{ py: 8 }}>
                   <Typography variant="body1" sx={{ mb: 1, fontWeight: 600 }}>
                     No users found
                   </Typography>
@@ -210,9 +230,29 @@ export default function Users() {
                       label={u.isActive ? 'Active' : 'Inactive'}
                       size="small"
                       color={u.isActive ? 'success' : 'default'}
-                      variant="soft"
+                      variant="outlined"
                       sx={{ fontWeight: 600 }}
                     />
+                  </TableCell>
+                  <TableCell align="right">
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+                      <IconButton
+                        size="small"
+                        onClick={() => handleToggleStatus(u.id, u.isActive)}
+                        title={u.isActive ? 'Deactivate' : 'Activate'}
+                        color={u.isActive ? 'warning' : 'success'}
+                      >
+                        {u.isActive ? <BlockIcon fontSize="small" /> : <CheckCircleIcon fontSize="small" />}
+                      </IconButton>
+                      <IconButton
+                        size="small"
+                        onClick={() => handleDelete(u.id)}
+                        color="error"
+                        title="Delete User"
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Box>
                   </TableCell>
                 </TableRow>
               ))
