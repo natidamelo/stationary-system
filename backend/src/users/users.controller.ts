@@ -1,5 +1,5 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { Controller, Get, Post, Body, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags, ApiOperation } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { RolesGuard } from '../guards/roles.guard';
@@ -7,6 +7,8 @@ import { Roles } from '../decorators/roles.decorator';
 import { RoleEnum } from '../common/enums';
 import { CurrentUser } from '../decorators/current-user.decorator';
 import { UserPayload } from '../common/user.types';
+import { CreateUserDto } from './dto/create-user.dto';
+import * as bcrypt from 'bcrypt';
 
 @ApiTags('users')
 @ApiBearerAuth()
@@ -18,7 +20,21 @@ export class UsersController {
   @Get()
   @UseGuards(RolesGuard)
   @Roles(RoleEnum.DEALER, RoleEnum.ADMIN, RoleEnum.MANAGER)
+  @ApiOperation({ summary: 'List all users in the tenant' })
   async list(@CurrentUser() user: UserPayload) {
     return this.users.findAll(user.tenantId);
+  }
+
+  @Post()
+  @UseGuards(RolesGuard)
+  @Roles(RoleEnum.DEALER, RoleEnum.ADMIN)
+  @ApiOperation({ summary: 'Create a new user in the tenant' })
+  async create(@CurrentUser() user: UserPayload, @Body() dto: CreateUserDto) {
+    const hashed = await bcrypt.hash(dto.password, 10);
+    return this.users.create({
+      ...dto,
+      passwordHash: hashed,
+      tenantId: user.tenantId,
+    });
   }
 }
