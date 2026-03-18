@@ -83,10 +83,13 @@ export class TenantsService {
     const tid = toObjectId(id);
     if (!tid) throw new BadRequestException('Invalid Tenant ID format');
 
-    const updated = await this.tenantModel
-      .findByIdAndUpdate(tid, updateTenantDto, { new: true })
-      .exec();
-    if (!updated) throw new NotFoundException('Tenant not found');
+    const tenant = await this.tenantModel.findById(tid);
+    if (!tenant) throw new NotFoundException('Tenant not found');
+
+    if (updateTenantDto.name !== undefined) tenant.name = updateTenantDto.name;
+    if (updateTenantDto.isActive !== undefined) tenant.isActive = updateTenantDto.isActive;
+
+    const updated = await tenant.save();
     return updated;
   }
 

@@ -45,6 +45,7 @@ export class TenantsController {
   @Roles('dealer')
   @ApiBearerAuth()
   update(@Param('id') id: string, @Body() updateTenantDto: UpdateTenantDto) {
+    console.log(`Updating tenant ${id}:`, updateTenantDto);
     return this.tenantsService.update(id, updateTenantDto);
   }
 
