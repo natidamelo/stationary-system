@@ -50,17 +50,30 @@ export class ItemsService {
   }
 
   async create(dto: CreateItemDto, tenantId: string) {
-    const tid = toObjectId(tenantId);
-    if (!tid) throw new BadRequestException('Tenant ID is required');
-    // Generate barcode from SKU if not provided
-    const barcode = dto.barcode || dto.sku;
-    const created = await this.model.create({
-      ...dto,
-      barcode,
-      tenantId: tid,
-      categoryId: toObjectId(dto.categoryId) || undefined,
-    });
-    return this.findOne(created._id.toString(), tenantId);
+    try {
+      const tid = toObjectId(tenantId);
+      if (!tid) throw new BadRequestException('Tenant ID is required');
+      
+      const barcode = dto.barcode || dto.sku;
+      const created = await this.model.create({
+        ...dto,
+        barcode,
+        tenantId: tid,
+        categoryId: toObjectId(dto.categoryId) || undefined,
+      });
+      
+      return this.toItem(created);
+    } catch (error: any) {
+      if (error.code === 11000) {
+        throw new BadRequestException(`An item with this SKU or barcode already exists`);
+      }
+      if (error.name === 'ValidationError') {
+        const messages = Object.values(error.errors).map((err: any) => err.message);
+        throw new BadRequestException(messages.join(', '));
+      }
+      console.error('ItemsService.create error:', error);
+      throw error;
+    }
   }
 
   async findAll(tenantId: string, filters?: { categoryId?: string; search?: string }) {

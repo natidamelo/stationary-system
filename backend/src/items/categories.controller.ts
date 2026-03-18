@@ -16,6 +16,9 @@ import { RolesGuard } from '../guards/roles.guard';
 import { Roles } from '../decorators/roles.decorator';
 import { RoleEnum } from '../common/enums';
 
+import { CreateCategoryDto } from './dto/create-category.dto';
+import { UpdateCategoryDto } from './dto/update-category.dto';
+
 @ApiTags('categories')
 @ApiBearerAuth()
 @Controller('api/categories')
@@ -26,8 +29,8 @@ export class CategoriesController {
   @Post()
   @UseGuards(RolesGuard)
   @Roles(RoleEnum.ADMIN, RoleEnum.INVENTORY_CLERK, RoleEnum.MANAGER)
-  create(@Body() body: { name: string; description?: string }, @Request() req: any) {
-    return this.categories.create(body.name, req.user.tenantId, body.description);
+  create(@Body() dto: CreateCategoryDto, @Request() req: any) {
+    return this.categories.create(dto.name, req.user.tenantId, dto.description);
   }
 
   @Get()
@@ -45,10 +48,10 @@ export class CategoriesController {
   @Roles(RoleEnum.ADMIN, RoleEnum.INVENTORY_CLERK, RoleEnum.MANAGER)
   update(
     @Param('id') id: string,
-    @Body() body: { name?: string; description?: string },
+    @Body() dto: UpdateCategoryDto,
     @Request() req: any
   ) {
-    return this.categories.update(id, req.user.tenantId, body);
+    return this.categories.update(id, req.user.tenantId, dto);
   }
 
   @Delete(':id')

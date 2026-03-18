@@ -44,10 +44,16 @@ export default function Categories() {
   }, []);
 
   const save = async () => {
-    if (editingId) await api.put(`/categories/${editingId}`, form);
-    else await api.post('/categories', form);
-    setModal(false);
-    load();
+    try {
+      if (editingId) await api.put(`/categories/${editingId}`, form);
+      else await api.post('/categories', form);
+      setModal(false);
+      load();
+    } catch (err: any) {
+      const msg = err.response?.data?.message || 'Failed to save category';
+      alert(msg);
+      console.error('Error saving category:', err);
+    }
   };
 
   const openAdd = () => {
