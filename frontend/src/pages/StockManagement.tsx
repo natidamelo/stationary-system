@@ -30,6 +30,7 @@ import {
   Tooltip,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
 import PrintIcon from '@mui/icons-material/Print';
 import JsBarcode from 'jsbarcode';
 import { api } from '../api/client';
@@ -434,6 +435,21 @@ export default function StockManagement() {
     }
   };
 
+  const handleDeleteItem = async (item: StockItem) => {
+    if (!window.confirm(`Are you sure you want to delete "${item.name}" (${item.sku})? This will hide the item from current stock but preserve historical data.`)) {
+      return;
+    }
+    
+    try {
+      await api.delete(`/items/${item.id}`);
+      loadData();
+    } catch (e: any) {
+      console.error('Failed to delete item:', e);
+      const msg = e.response?.data?.message;
+      setError(Array.isArray(msg) ? msg.join(', ') : (msg || 'Failed to delete item.'));
+    }
+  };
+
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
@@ -681,17 +697,32 @@ export default function StockManagement() {
                                 <TableCell>
                                   <Box sx={{ display: 'flex', gap: 0.5 }}>
                                     {canManage(user?.role ?? '') && (
-                                      <IconButton
-                                        size="small"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleEditStock(item);
-                                        }}
-                                        sx={{ color: 'primary.main' }}
-                                        title="Edit stock"
-                                      >
-                                        <EditIcon fontSize="small" />
-                                      </IconButton>
+                                      <>
+                                        <IconButton
+                                          size="small"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleEditStock(item);
+                                          }}
+                                          sx={{ color: 'primary.main' }}
+                                          title="Edit stock"
+                                        >
+                                          <EditIcon fontSize="small" />
+                                        </IconButton>
+                                        {(user?.role === 'admin' || user?.role === 'dealer') && (
+                                          <IconButton
+                                            size="small"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleDeleteItem(item);
+                                            }}
+                                            sx={{ color: 'error.main' }}
+                                            title="Delete item"
+                                          >
+                                            <DeleteIcon fontSize="small" />
+                                          </IconButton>
+                                        )}
+                                      </>
                                     )}
                                   </Box>
                                 </TableCell>

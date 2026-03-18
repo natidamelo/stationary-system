@@ -500,10 +500,6 @@ export default function Reception() {
   // Sale total = original price for items (so partial payment balance is correct), selling price for services
   const computedTotal = lines.reduce((sum, l) => {
     if (!((l.type === 'item' && l.itemId) || (l.type === 'service' && l.serviceId)) || l.quantity <= 0) return sum;
-    if (l.type === 'item' && l.itemId) {
-      const item = items.find((i) => i.id === l.itemId);
-      return sum + (item ? Number(item.price) : 0) * l.quantity;
-    }
     return sum + l.quantity * Number(l.unitPrice || 0);
   }, 0);
   const displayAmountPaid = amountPaid === '' ? (computedTotal > 0 ? computedTotal : '') : amountPaid;
@@ -516,27 +512,11 @@ export default function Reception() {
       l.unitPrice >= 0
     );
     if (!valid.length) return;
-    // Ensure no item selling price exceeds original price
-    for (const l of valid) {
-      if (l.type === 'item' && l.itemId) {
-        const item = items.find((i) => i.id === l.itemId);
-        if (item && Number(l.unitPrice) > Number(item.price)) {
-          setSellError(`Selling price cannot exceed original price (${Number(item.price).toFixed(2)}) for ${item.sku}.`);
-          return;
-        }
-      }
-    }
     setSelling(true);
     setSellError('');
     try {
-      // Use same total as displayed (original price for items) so balance due is correct
-      const total = valid.reduce((s, l) => {
-        if (l.type === 'item' && l.itemId) {
-          const item = items.find((i) => i.id === l.itemId);
-          return s + (item ? Number(item.price) : 0) * l.quantity;
-        }
-        return s + l.quantity * Number(l.unitPrice);
-      }, 0);
+      // Use the unit price entered by the user
+      const total = valid.reduce((s, l) => s + l.quantity * Number(l.unitPrice), 0);
       // Always send amountPaid explicitly: use entered value or full total (so partial payment is never lost)
       const paid = amountPaid === '' || amountPaid === undefined
         ? total
@@ -697,24 +677,13 @@ export default function Reception() {
                     value={line.unitPrice || ''}
                     onChange={(e) => {
                       const raw = Number(e.target.value);
-                      if (line.type === 'item' && line.itemId) {
-                        const item = items.find((i) => i.id === line.itemId);
-                        const maxPrice = item ? Number(item.price) : raw;
-                        setLines((p) => p.map((l, i) => (i === idx ? { ...l, unitPrice: Math.min(raw, maxPrice) } : l)));
-                      } else {
-                        setLines((p) => p.map((l, i) => (i === idx ? { ...l, unitPrice: raw } : l)));
-                      }
+                      setLines((p) => p.map((l, i) => (i === idx ? { ...l, unitPrice: raw } : l)));
                     }}
                     placeholder="Price"
                     inputProps={{
                       min: 0,
-                      max: line.type === 'item' && line.itemId ? items.find((i) => i.id === line.itemId)?.price : undefined,
                       step: 0.01,
                     }}
-                    helperText={line.type === 'item' && line.itemId && (() => {
-                      const item = items.find((i) => i.id === line.itemId);
-                      return item ? `Max: ${Number(item.price).toFixed(2)}` : null;
-                    })()}
                     sx={{ width: 90 }}
                   />
                 </Box>

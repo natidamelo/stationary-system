@@ -260,6 +260,18 @@ export default function Items() {
     load();
   };
 
+  const handleDeleteItem = async (item: Item) => {
+    if (!window.confirm(`Are you sure you want to delete "${item.name}" (${item.sku})?`)) {
+      return;
+    }
+    try {
+      await api.delete(`/items/${item.id}`);
+      load();
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Failed to delete item');
+    }
+  };
+
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
@@ -350,9 +362,14 @@ export default function Items() {
                 <TableCell align="right">{Number(i.price).toFixed(2)}</TableCell>
                 <TableCell align="right">{Number(i.costPrice ?? 0).toFixed(2)}</TableCell>
                 <TableCell align="center">
-                  {canEdit(user?.role ?? '') && (
-                    <Button size="small" onClick={() => openEdit(i)}>Edit</Button>
-                  )}
+                  <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
+                    {canEdit(user?.role ?? '') && (
+                      <Button size="small" onClick={() => openEdit(i)}>Edit</Button>
+                    )}
+                    {(user?.role === 'admin' || user?.role === 'dealer') && (
+                      <Button size="small" color="error" onClick={() => handleDeleteItem(i)}>Delete</Button>
+                    )}
+                  </Box>
                 </TableCell>
               </TableRow>
             ))}

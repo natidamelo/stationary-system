@@ -109,13 +109,6 @@ export class ReceptionService {
             $or: [{ tenantId: tid }, { tenantId: cleanTenantId }] 
           }).select('name sku price costPrice').lean();
           if (!item) throw new BadRequestException(`Item not found for this tenant: ${l.itemId}`);
-          const originalPrice = Number((item as any).price ?? 0);
-          if (Number(l.unitPrice) > originalPrice) {
-            const label = `${item.name} (${item.sku})`;
-            throw new BadRequestException(
-              `Selling price (${Number(l.unitPrice).toFixed(2)}) cannot exceed original price (${originalPrice.toFixed(2)}) for ${label}`,
-            );
-          }
           const balance = await this.inventory.getBalance(l.itemId, user.tenantId);
           if (balance < (Number(l.quantity) || 0)) {
             const label = `${item.name} (${item.sku})`;
@@ -156,7 +149,7 @@ export class ReceptionService {
             _id: toObjectId(l.itemId), 
             $or: [{ tenantId: tid }, { tenantId: cleanTenantId }] 
           }).select('price costPrice').lean();
-          lineAmountCalculation = (Number((item as any)?.price ?? 0)) * qty;
+          lineAmountCalculation = uPrice * qty;
           unitCost = Math.max(0, Number((item as any)?.costPrice ?? 0));
           line.itemId = toObjectId(l.itemId);
           line.unitCost = unitCost;
