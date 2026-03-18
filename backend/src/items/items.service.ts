@@ -139,30 +139,48 @@ export class ItemsService {
   }
 
   async findBySku(sku: string, tenantId: string) {
-    const tid = toObjectId(tenantId);
-    if (!tid) throw new BadRequestException('Tenant ID is required');
-    const doc = await this.model.findOne({ sku, tenantId: tid }).lean();
+    const cleanTenantId = (tenantId || '').trim();
+    const tid = toObjectId(cleanTenantId);
+    if (!tid && !cleanTenantId) throw new BadRequestException('Tenant ID is required');
+
+    const doc = await this.model.findOne({ 
+      sku, 
+      $or: [{ tenantId: tid }, { tenantId: cleanTenantId }] 
+    }).lean();
     return doc ? this.toItem(doc) : null;
   }
 
   async findByBarcode(barcode: string, tenantId: string) {
-    const tid = toObjectId(tenantId);
-    if (!tid) throw new BadRequestException('Tenant ID is required');
+    const cleanTenantId = (tenantId || '').trim();
+    const tid = toObjectId(cleanTenantId);
+    if (!tid && !cleanTenantId) throw new BadRequestException('Tenant ID is required');
+
     // Try to find by barcode first, then fallback to SKU
-    let doc = await this.model.findOne({ barcode, tenantId: tid }).populate('categoryId').lean();
+    let doc = await this.model.findOne({ 
+      barcode, 
+      $or: [{ tenantId: tid }, { tenantId: cleanTenantId }] 
+    }).populate('categoryId').lean();
+
     if (!doc) {
       // Fallback to SKU if barcode not found
-      doc = await this.model.findOne({ sku: barcode, tenantId: tid }).populate('categoryId').lean();
+      doc = await this.model.findOne({ 
+        sku: barcode, 
+        $or: [{ tenantId: tid }, { tenantId: cleanTenantId }] 
+      }).populate('categoryId').lean();
     }
     return doc ? this.toItem(doc) : null;
   }
 
   async update(id: string, dto: UpdateItemDto, tenantId: string) {
-    const tid = toObjectId(tenantId);
+    const cleanTenantId = (tenantId || '').trim();
+    const tid = toObjectId(cleanTenantId);
     const lid = toObjectId(id);
-    if (!tid || !lid) throw new BadRequestException('Invalid IDs');
+    if (!lid) throw new BadRequestException('Invalid Item ID');
     
-    const existing = await this.model.findOne({ _id: lid, tenantId: tid }).lean();
+    const existing = await this.model.findOne({ 
+      _id: lid, 
+      $or: [{ tenantId: tid }, { tenantId: cleanTenantId }] 
+    }).lean();
     if (!existing) throw new NotFoundException('Item not found');
 
     const update: any = { ...dto };
@@ -170,24 +188,25 @@ export class ItemsService {
 
     // Generate barcode from SKU if not provided and doesn't exist
     if (!update.barcode && !existing.barcode) {
-      update.barcode = existing.sku;
+      update.barcode = (dto as any).sku || (existing as any).sku;
     }
 
     await this.model.updateOne(
-      { _id: lid, tenantId: tid }, 
+      { _id: lid, $or: [{ tenantId: tid }, { tenantId: cleanTenantId }] }, 
       { $set: update }
     );
     return this.findOne(id, tenantId);
   }
 
   async remove(id: string, tenantId: string) {
-    const tid = toObjectId(tenantId);
+    const cleanTenantId = (tenantId || '').trim();
+    const tid = toObjectId(cleanTenantId);
     const lid = toObjectId(id);
-    if (!tid || !lid) throw new BadRequestException('Invalid IDs');
+    if (!lid) throw new BadRequestException('Invalid Item ID');
     
     await this.findOne(id, tenantId);
     await this.model.updateOne(
-      { _id: lid, tenantId: tid }, 
+      { _id: lid, $or: [{ tenantId: tid }, { tenantId: cleanTenantId }] }, 
       { $set: { isActive: false } }
     );
     return this.findOne(id, tenantId);

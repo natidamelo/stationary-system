@@ -70,14 +70,17 @@ export class InventoryService {
     },
   ) {
     try {
-      const tenantId = opts.performedBy?.tenantId;
-      if (!tenantId) throw new BadRequestException('Tenant ID required for stock movement');
-      const tid = toObjectId(tenantId);
+      const tenantId = opts.performedBy?.tenantId || '';
+      const cleanTenantId = (tenantId || '').trim();
+      const tid = toObjectId(cleanTenantId);
       const itemIdObj = toObjectId(itemId);
       if (!tid || !itemIdObj) throw new BadRequestException('Invalid IDs for inventory');
 
-      const item = await this.itemModel.findOne({ _id: itemIdObj, tenantId: tid }).lean();
-      if (!item) throw new BadRequestException(`Item not found: ${itemId}`);
+      const item = await this.itemModel.findOne({ 
+        _id: itemIdObj, 
+        $or: [{ tenantId: tid }, { tenantId: cleanTenantId }] 
+      }).lean();
+      if (!item) throw new BadRequestException(`Item not found for this tenant: ${itemId}`);
       
       const current = await this.getBalance(itemId, tenantId);
       const qtyNum = Number(quantity) || 0;
@@ -162,9 +165,15 @@ export class InventoryService {
   }
 
   async getLowStockItems(tenantId: string) {
-    const tid = toObjectId(tenantId);
-    if (!tid) return [];
-    const items = await this.itemModel.find({ isActive: true, tenantId: tid }).populate('categoryId').lean();
+    const cleanTenantId = (tenantId || '').trim();
+    const tid = toObjectId(cleanTenantId);
+    if (!tid && !cleanTenantId) return [];
+    
+    // Using robust $or query for tenantId
+    const items = await this.itemModel.find({ 
+      isActive: true, 
+      $or: [{ tenantId: tid }, { tenantId: cleanTenantId }] 
+    }).populate('categoryId').lean();
     const balances = await this.getBalancesForItems(items.map((i: any) => i._id.toString()), tenantId);
     return items
       .filter((i: any) => {

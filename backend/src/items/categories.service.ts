@@ -98,32 +98,46 @@ export class CategoriesService {
   }
 
   async findOne(id: string, tenantId: string) {
-    const tid = toObjectId(tenantId);
+    const cleanTenantId = (tenantId || '').trim();
+    const tid = toObjectId(cleanTenantId);
     const cid = toObjectId(id);
-    if (!tid || !cid) throw new BadRequestException('Invalid IDs');
-    const doc = await this.model.findOne({ _id: cid, tenantId: tid }).lean();
-    if (!doc) throw new NotFoundException('Category not found');
+    if (!tid && !cleanTenantId) throw new BadRequestException('Tenant ID is required');
+    if (!cid) throw new BadRequestException('Invalid Category ID');
+
+    const doc = await this.model.findOne({ 
+      _id: cid, 
+      $or: [{ tenantId: tid }, { tenantId: cleanTenantId }]
+    }).lean();
+    
+    if (!doc) throw new NotFoundException(`Category not found for tenant: ${cleanTenantId}`);
     return this.toCat(doc);
   }
 
   async update(id: string, tenantId: string, data: { name?: string; description?: string }) {
-    const tid = toObjectId(tenantId);
+    const cleanTenantId = (tenantId || '').trim();
+    const tid = toObjectId(cleanTenantId);
     const cid = toObjectId(id);
-    if (!tid || !cid) throw new BadRequestException('Invalid IDs');
+    
+    // Ensure it exists first using the robust findOne
     await this.findOne(id, tenantId);
+    
     await this.model.updateOne(
-      { _id: cid, tenantId: tid }, 
+      { _id: cid, $or: [{ tenantId: tid }, { tenantId: cleanTenantId }] }, 
       { $set: data }
     );
     return this.findOne(id, tenantId);
   }
 
   async remove(id: string, tenantId: string) {
-    const tid = toObjectId(tenantId);
+    const cleanTenantId = (tenantId || '').trim();
+    const tid = toObjectId(cleanTenantId);
     const cid = toObjectId(id);
-    if (!tid || !cid) throw new BadRequestException('Invalid IDs');
+    
     await this.findOne(id, tenantId);
-    await this.model.deleteOne({ _id: cid, tenantId: tid });
+    await this.model.deleteOne({ 
+      _id: cid, 
+      $or: [{ tenantId: tid }, { tenantId: cleanTenantId }] 
+    });
     return { deleted: true };
   }
 }
