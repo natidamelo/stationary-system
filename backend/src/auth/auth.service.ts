@@ -44,9 +44,19 @@ export class AuthService {
     const roleName = user.role?.name;
     const tenantId = user.tenantId?.toString() || '';
 
-    // Dealer (developer) accounts can always log in, even if licenses are expired.
-    // For all other roles we enforce license validation per computer.
-    if (dto.computerId && roleName !== 'dealer') {
+    // ALWAYS check if tenant is active for non-dealer roles
+    if (roleName !== 'dealer' && tenantId) {
+      const tenant = await this.tenantsService.findOne(tenantId);
+      if (!tenant || !tenant.isActive) {
+        throw new UnauthorizedException('Account is not activated. Please contact the provider.');
+      }
+    }
+
+    // Enforce license validation per computer for non-dealer roles
+    if (roleName !== 'dealer') {
+      if (!dto.computerId) {
+        throw new BadRequestException('Computer ID is required for license validation.');
+      }
       try {
         const licenseCheck = await this.licenseService.validateLicense(dto.computerId, tenantId);
         if (!licenseCheck.valid) {
@@ -63,7 +73,8 @@ export class AuthService {
         }
       } catch (err) {
         console.error('License check error:', err.message);
-        // Fallback or rethrow
+        if (err instanceof UnauthorizedException) throw err;
+        throw new UnauthorizedException('License validation failed');
       }
     }
 
