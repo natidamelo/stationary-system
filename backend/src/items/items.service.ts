@@ -65,7 +65,7 @@ export class ItemsService {
 
   async findAll(tenantId: string, filters?: { categoryId?: string; search?: string }) {
     const tid = toObjectId(tenantId);
-    if (!tid) throw new BadRequestException('Tenant ID is required');
+    if (!tid) return [];
     const q: any = { 
       tenantId: tid,
       isActive: { $ne: false } 

@@ -98,27 +98,40 @@ export default function StockManagement() {
   const [issueModal, setIssueModal] = useState(false);
   const [addItemModal, setAddItemModal] = useState(false);
   const [editStockModal, setEditStockModal] = useState(false);
+  const [printDialog, setPrintDialog] = useState(false);
   
   // Forms
   const [adjustForm, setAdjustForm] = useState({ itemId: '', quantity: 0, notes: '' });
   const [issueForm, setIssueForm] = useState({ issuedToUserId: '', department: '', notes: '', lines: [{ itemId: '', quantity: 1 }] });
   const [itemForm, setItemForm] = useState({ sku: '', name: '', categoryId: '', unit: 'unit', reorderLevel: 0, price: 0, sellPrice: 0, barcode: '' });
   const [editStockForm, setEditStockForm] = useState({ itemId: '', quantity: 0, costPrice: 0, sellPrice: 0, reorderLevel: 0 });
+  const [printCount, setPrintCount] = useState(1);
+  const [itemToPrint, setItemToPrint] = useState<StockItem | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const printBarcode = (item: StockItem) => {
+  const printBarcode = (item: StockItem, count: number = 1) => {
     const barcode = item.barcode || item.sku;
     const canvas = document.createElement('canvas');
     
     try {
       JsBarcode(canvas, barcode, {
         format: 'CODE128',
-        width: 2,
-        height: 60,
+        width: 1.5,
+        height: 40,
         displayValue: true,
-        fontSize: 14,
-        margin: 10,
+        fontSize: 10,
+        margin: 5,
       });
+
+      const labelHtml = `
+        <div class="barcode-container">
+          <div style="font-weight: bold; margin-bottom: 5px; font-size: 10px;">${item.name}</div>
+          <div style="font-size: 9px; margin-bottom: 5px;">SKU: ${item.sku}</div>
+          <img src="${canvas.toDataURL()}" alt="Barcode" style="max-width: 100%; height: auto;" />
+          <div class="item-info">Barcode: ${barcode}</div>
+        </div>`;
+
+      const labelsHtml = Array(count).fill(labelHtml).join('');
 
       // Create a new window for printing
       const printWindow = window.open('', '_blank');
@@ -134,42 +147,51 @@ export default function StockManagement() {
             <style>
               @media print {
                 @page {
-                  margin: 10mm;
+                  margin: 5mm;
                   size: A4;
                 }
                 body {
                   margin: 0;
-                  padding: 20px;
+                  padding: 0;
                 }
               }
               body {
                 font-family: Arial, sans-serif;
-                text-align: center;
-                padding: 20px;
+                padding: 10mm;
+                background: #fff;
+              }
+              .grid {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 5mm;
+                justify-content: flex-start;
               }
               .barcode-container {
-                display: inline-block;
-                padding: 20px;
-                border: 1px solid #ddd;
-                margin: 10px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                width: 45mm;
+                height: 30mm;
+                padding: 2mm;
+                border: 0.2mm solid #ccc;
                 page-break-inside: avoid;
+                text-align: center;
               }
               .item-info {
-                margin-top: 10px;
-                font-size: 12px;
+                margin-top: 5px;
+                font-size: 8px;
               }
             </style>
           </head>
           <body>
-            <div class="barcode-container">
-              <div style="font-weight: bold; margin-bottom: 10px;">${item.name}</div>
-              <div style="font-size: 11px; margin-bottom: 5px;">SKU: ${item.sku}</div>
-              <img src="${canvas.toDataURL()}" alt="Barcode" />
-              <div class="item-info">Barcode: ${barcode}</div>
+            <div class="grid">
+              ${labelsHtml}
             </div>
             <script>
               window.onload = function() {
                 window.print();
+                window.onafterprint = function() { window.close(); };
               };
             </script>
           </body>
@@ -179,6 +201,19 @@ export default function StockManagement() {
     } catch (error) {
       console.error('Error generating barcode:', error);
       alert('Error generating barcode. Please try again.');
+    }
+  };
+
+  const handleOpenPrintDialog = (item: StockItem) => {
+    setItemToPrint(item);
+    setPrintCount(20); // Default to 20 as requested
+    setPrintDialog(true);
+  };
+
+  const handleDoPrint = () => {
+    if (itemToPrint) {
+      printBarcode(itemToPrint, printCount);
+      setPrintDialog(false);
     }
   };
 
@@ -610,18 +645,18 @@ export default function StockManagement() {
                                     <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>
                                       {item.barcode || item.sku}
                                     </Typography>
-                                    <Tooltip title="Print barcode">
-                                      <IconButton
-                                        size="small"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          printBarcode(item);
-                                        }}
-                                        sx={{ p: 0.5 }}
-                                      >
-                                        <PrintIcon fontSize="small" />
-                                      </IconButton>
-                                    </Tooltip>
+                                      <Tooltip title="Print barcodes">
+                                        <IconButton
+                                          size="small"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleOpenPrintDialog(item);
+                                          }}
+                                          sx={{ p: 0.5 }}
+                                        >
+                                          <PrintIcon fontSize="small" />
+                                        </IconButton>
+                                      </Tooltip>
                                   </Box>
                                 </TableCell>
                                 <TableCell align="right" sx={{ fontWeight: 600 }}>{item.currentStock}</TableCell>
@@ -1100,6 +1135,38 @@ export default function StockManagement() {
           <Button onClick={() => setAddItemModal(false)}>Cancel</Button>
           <Button variant="contained" onClick={saveItem} disabled={!itemForm.sku || !itemForm.name}>
             Add Item
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Print Barcodes Dialog */}
+      <Dialog open={printDialog} onClose={() => setPrintDialog(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Print Barcodes</DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Typography variant="body2" color="text.secondary">
+              How many copies of the barcode for <strong>{itemToPrint?.name}</strong> would you like to print?
+            </Typography>
+            <TextField
+              autoFocus
+              label="Number of copies"
+              type="number"
+              fullWidth
+              value={printCount}
+              onChange={(e) => setPrintCount(Math.max(1, Number(e.target.value)))}
+              onKeyUp={(e) => {
+                if (e.key === 'Enter') handleDoPrint();
+              }}
+              slotProps={{
+                htmlInput: { min: 1, max: 100 }
+              }}
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setPrintDialog(false)}>Cancel</Button>
+          <Button variant="contained" onClick={handleDoPrint}>
+            Print {printCount} Copies
           </Button>
         </DialogActions>
       </Dialog>

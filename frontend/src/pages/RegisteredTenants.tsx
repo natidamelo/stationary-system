@@ -33,6 +33,7 @@ import KeyboardArrowDownRoundedIcon from '@mui/icons-material/KeyboardArrowDownR
 import KeyboardArrowUpRoundedIcon from '@mui/icons-material/KeyboardArrowUpRounded';
 import BusinessRoundedIcon from '@mui/icons-material/BusinessRounded';
 import PersonRoundedIcon from '@mui/icons-material/PersonRounded';
+import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import { api } from '../api/client';
 
 type Tenant = {
@@ -252,6 +253,17 @@ export default function RegisteredTenants() {
     expiryDate: '',
   });
 
+  // Add Tenant dialog
+  const [addModal, setAddModal] = useState(false);
+  const [addLoading, setAddLoading] = useState(false);
+  const [addError, setAddError] = useState('');
+  const [addForm, setAddForm] = useState({
+    companyName: '',
+    fullName: '',
+    email: '',
+    password: '',
+  });
+
   const fetchTenants = () => {
     setLoading(true);
     api.get<Tenant[]>('/tenants')
@@ -317,6 +329,22 @@ export default function RegisteredTenants() {
     setLicenseForm({ computerId: '', durationValue: 1, durationUnit: 'year', expiryDate: '' });
   };
 
+  const handleAddTenant = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAddLoading(true);
+    setAddError('');
+    try {
+      await api.post('/auth/register', addForm);
+      setAddModal(false);
+      setAddForm({ companyName: '', fullName: '', email: '', password: '' });
+      fetchTenants();
+    } catch (e: any) {
+      setAddError(e.response?.data?.message || 'Failed to register tenant');
+    } finally {
+      setAddLoading(false);
+    }
+  };
+
   if (loading) return <CircularProgress sx={{ display: 'block', mx: 'auto', mt: 6 }} />;
 
   return (
@@ -328,11 +356,24 @@ export default function RegisteredTenants() {
             All businesses that have self-registered. Manage them and issue licenses here.
           </Typography>
         </Box>
-        <Chip
-          label={`${tenants.length} tenant${tenants.length !== 1 ? 's' : ''}`}
-          color="primary"
-          sx={{ fontWeight: 700 }}
-        />
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+          <Chip
+            label={`${tenants.length} tenant${tenants.length !== 1 ? 's' : ''}`}
+            color="primary"
+            sx={{ fontWeight: 700, height: 32 }}
+          />
+          <Button
+            variant="contained"
+            startIcon={<AddRoundedIcon />}
+            onClick={() => setAddModal(true)}
+            sx={{
+              background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+              fontWeight: 700,
+            }}
+          >
+            Add Tenant
+          </Button>
+        </Box>
       </Box>
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
@@ -490,6 +531,66 @@ export default function RegisteredTenants() {
             </Button>
           )}
         </DialogActions>
+      </Dialog>
+
+      {/* Add New Tenant Dialog */}
+      <Dialog open={addModal} onClose={() => !addLoading && setAddModal(false)} maxWidth="xs" fullWidth>
+        <form onSubmit={handleAddTenant}>
+          <DialogTitle sx={{ fontWeight: 700 }}>Add New Shop</DialogTitle>
+          <DialogContent>
+            {addError && <Alert severity="error" sx={{ mb: 2 }}>{addError}</Alert>}
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+              Create a new shop and its owner account manually.
+            </Typography>
+            <TextField
+              label="Shop Name"
+              fullWidth
+              required
+              value={addForm.companyName}
+              onChange={(e) => setAddForm((f) => ({ ...f, companyName: e.target.value }))}
+              margin="dense"
+            />
+            <TextField
+              label="Owner Full Name"
+              fullWidth
+              required
+              value={addForm.fullName}
+              onChange={(e) => setAddForm((f) => ({ ...f, fullName: e.target.value }))}
+              margin="normal"
+            />
+            <TextField
+              label="Email Address"
+              type="email"
+              fullWidth
+              required
+              value={addForm.email}
+              onChange={(e) => setAddForm((f) => ({ ...f, email: e.target.value }))}
+              margin="normal"
+            />
+            <TextField
+              label="Password"
+              type="password"
+              fullWidth
+              required
+              value={addForm.password}
+              onChange={(e) => setAddForm((f) => ({ ...f, password: e.target.value }))}
+              margin="normal"
+              helperText="Owner will use this to log in"
+            />
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 2 }}>
+            <Button onClick={() => setAddModal(false)} disabled={addLoading}>Cancel</Button>
+            <Button
+              type="submit"
+              variant="contained"
+              disabled={addLoading}
+              startIcon={addLoading ? <CircularProgress size={16} color="inherit" /> : <AddRoundedIcon />}
+              sx={{ background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)' }}
+            >
+              {addLoading ? 'Creating...' : 'Register Shop'}
+            </Button>
+          </DialogActions>
+        </form>
       </Dialog>
     </Box>
   );

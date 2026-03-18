@@ -56,6 +56,9 @@ export default function Items() {
   const [modal, setModal] = useState<'add' | 'edit' | null>(null);
   const [form, setForm] = useState({ sku: '', name: '', categoryId: '', unit: 'unit', reorderLevel: 0, price: 0, costPrice: 0, barcode: '', imageUrl: '' });
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [printDialog, setPrintDialog] = useState(false);
+  const [printCount, setPrintCount] = useState(20);
+  const [itemToPrint, setItemToPrint] = useState<Item | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImportCsv = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -75,7 +78,7 @@ export default function Items() {
       e.target.value = '';
     }
   };
-  const printBarcode = (item: Item) => {
+  const printBarcode = (item: Item, count: number = 20) => {
     const barcode = item.barcode || item.sku;
     const canvas = document.createElement('canvas');
 
@@ -96,9 +99,7 @@ export default function Items() {
           <img class="barcode-img" src="${canvas.toDataURL()}" alt="Barcode" />
         </div>`;
 
-      const LABELS_PER_PAGE = 20;
-      console.log('Printing', LABELS_PER_PAGE, 'labels per page');
-      const labelsHtml = Array(LABELS_PER_PAGE).fill(labelHtml).join('');
+      const labelsHtml = Array(count).fill(labelHtml).join('');
 
       const printWindow = window.open('', '_blank');
       if (!printWindow) {
@@ -169,7 +170,7 @@ export default function Items() {
               ${labelsHtml}
             </div>
             <script>
-              window.onload = function() { window.print(); };
+              window.onload = function() { window.print(); window.onafterprint = function() { window.close(); }; };
             </script>
           </body>
         </html>
@@ -178,6 +179,19 @@ export default function Items() {
     } catch (error) {
       console.error('Error generating barcode:', error);
       alert('Error generating barcode. Please try again.');
+    }
+  };
+
+  const handleOpenPrintDialog = (item: Item) => {
+    setItemToPrint(item);
+    setPrintCount(20);
+    setPrintDialog(true);
+  };
+
+  const handleDoPrint = () => {
+    if (itemToPrint) {
+      printBarcode(itemToPrint, printCount);
+      setPrintDialog(false);
     }
   };
 
@@ -325,8 +339,8 @@ export default function Items() {
                     <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
                       {i.barcode || i.sku}
                     </Typography>
-                    <Tooltip title="Print barcode">
-                      <IconButton size="small" onClick={() => printBarcode(i)}>
+                    <Tooltip title="Print barcodes">
+                      <IconButton size="small" onClick={() => handleOpenPrintDialog(i)}>
                         <PrintIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
@@ -378,6 +392,37 @@ export default function Items() {
         <DialogActions>
           <Button onClick={() => setModal(null)}>Cancel</Button>
           <Button variant="contained" onClick={save}>Save</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={printDialog} onClose={() => setPrintDialog(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Print Barcodes</DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Typography variant="body2" color="text.secondary">
+              How many copies of the barcode for <strong>{itemToPrint?.name}</strong> would you like to print?
+            </Typography>
+            <TextField
+              autoFocus
+              label="Number of copies"
+              type="number"
+              fullWidth
+              value={printCount}
+              onChange={(e) => setPrintCount(Math.max(1, Number(e.target.value)))}
+              onKeyUp={(e) => {
+                if (e.key === 'Enter') handleDoPrint();
+              }}
+              slotProps={{
+                htmlInput: { min: 1, max: 100 }
+              }}
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setPrintDialog(false)}>Cancel</Button>
+          <Button variant="contained" onClick={handleDoPrint}>
+            Print {printCount} Copies
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>
