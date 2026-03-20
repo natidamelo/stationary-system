@@ -126,11 +126,11 @@ export default function StockManagement() {
     try {
       JsBarcode(canvas, barcode, {
         format: 'CODE128',
-        width: 1.5,
-        height: 40,
+        width: 2.5, // Increased for better scanning
+        height: 60,  // Increased for better scanning
         displayValue: true,
-        fontSize: 10,
-        margin: 5,
+        fontSize: 12,
+        margin: 10,  // Better white space around barcode
       });
 
       const labelHtml = `
@@ -191,6 +191,11 @@ export default function StockManagement() {
               .item-info {
                 margin-top: 5px;
                 font-size: 8px;
+                font-family: monospace;
+              }
+              img {
+                image-rendering: -webkit-optimize-contrast; /* Sharper on some browsers */
+                image-rendering: pixelated; /* Sharpest for barcodes */
               }
             </style>
           </head>

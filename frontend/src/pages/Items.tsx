@@ -94,11 +94,11 @@ export default function Items() {
     try {
       JsBarcode(canvas, barcode, {
         format: 'CODE128',
-        width: 1.2,
-        height: 28,
+        width: 2.5, // High-performance width for mobile scanners
+        height: 60,  // High-performance height for mobile scanners
         displayValue: true,
-        fontSize: 8,
-        margin: 3,
+        fontSize: 12,
+        margin: 10,
       });
 
       const labelHtml = `
@@ -169,8 +169,10 @@ export default function Items() {
                 margin-bottom: 0.3mm;
               }
               .barcode-img {
-                max-width: 47mm;
+                max-width: 90%;
                 height: auto;
+                image-rendering: -webkit-optimize-contrast;
+                image-rendering: pixelated; /* Ensure crisp bars */
               }
             </style>
           </head>
