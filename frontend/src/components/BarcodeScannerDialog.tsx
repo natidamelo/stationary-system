@@ -66,13 +66,8 @@ export default function BarcodeScannerDialog({ open, onClose, onScan }: BarcodeS
 
         const config = {
           fps: 15,
-          aspectRatio: 1.0,
-          // Removed static qrbox so it scans the entire high-res video feed
-          videoConstraints: {
-            // Request good resolution for small barcodes
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-          }
+          // Scanning full frame without limiting to a qrbox or specific aspect ratio solves most
+          // small barcode alignment issues while remaining compatible with all devices.
         };
 
         const handleSuccess = (decodedText: string) => {
@@ -85,15 +80,15 @@ export default function BarcodeScannerDialog({ open, onClose, onScan }: BarcodeS
           // Ignore normal non-detection parse errors
         };
 
+        // Try environment (rear) camera first for mobile devices
         scanner.start({ facingMode: "environment" }, config, handleSuccess, handleError)
           .then(() => {
             if (isMounted) setLoading(false);
           })
           .catch((err) => {
             if (!isMounted) return;
-            // Fallback for laptops/desktops: use default user camera and simple config
-            const fallbackConfig = { fps: 15, aspectRatio: 1.0 };
-            scanner.start({ facingMode: "user" }, fallbackConfig, handleSuccess, handleError)
+            // Fallback for laptops/desktops without rear cameras: use front camera
+            scanner.start({ facingMode: "user" }, config, handleSuccess, handleError)
               .then(() => {
                 if (isMounted) setLoading(false);
               })
