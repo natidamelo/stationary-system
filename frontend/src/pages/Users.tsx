@@ -22,7 +22,16 @@ import {
   CircularProgress,
   Chip,
 } from '@mui/material';
-import { Add as AddIcon, Refresh as RefreshIcon, Person as PersonIcon, Delete as DeleteIcon, Block as BlockIcon, CheckCircle as CheckCircleIcon } from '@mui/icons-material';
+import { 
+  Add as AddIcon, 
+  Refresh as RefreshIcon, 
+  Person as PersonIcon, 
+  Delete as DeleteIcon, 
+  Block as BlockIcon, 
+  CheckCircle as CheckCircleIcon,
+  Edit as EditIcon,
+  VpnKey as VpnKeyIcon
+} from '@mui/icons-material';
 import { api } from '../api/client';
 
 type UserRow = {
@@ -46,6 +55,14 @@ export default function Users() {
   const [list, setList] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<UserRow | null>(null);
+  
+  const [passOpen, setPassOpen] = useState(false);
+  const [passTarget, setPassTarget] = useState<UserRow | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [passSubmitting, setPassSubmitting] = useState(false);
+  const [passError, setPassError] = useState('');
+
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -71,12 +88,7 @@ export default function Users() {
   }, []);
 
   const handleOpen = () => {
-    setOpen(true);
-    setError('');
-  };
-
-  const handleClose = () => {
-    setOpen(false);
+    setEditingUser(null);
     setFormData({
       fullName: '',
       email: '',
@@ -84,6 +96,26 @@ export default function Users() {
       department: '',
       roleName: 'employee',
     });
+    setOpen(true);
+    setError('');
+  };
+
+  const handleEdit = (user: UserRow) => {
+    setEditingUser(user);
+    setFormData({
+      fullName: user.fullName,
+      email: user.email,
+      password: '', // Password not included in edit profile
+      department: user.department || '',
+      roleName: user.role?.name || 'employee',
+    });
+    setOpen(true);
+    setError('');
+  };
+
+  const handleClose = () => {
+    setOpen(false);
+    setEditingUser(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -91,11 +123,17 @@ export default function Users() {
     setSubmitting(true);
     setError('');
     try {
-      await api.post('/users', formData);
+      if (editingUser) {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { password, ...updateData } = formData;
+        await api.patch(`/users/${editingUser.id}`, updateData);
+      } else {
+        await api.post('/users', formData);
+      }
       handleClose();
       fetchUsers();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to create user');
+      setError(err.response?.data?.message || `Failed to ${editingUser ? 'update' : 'create'} user`);
     } finally {
       setSubmitting(false);
     }
@@ -117,6 +155,28 @@ export default function Users() {
       fetchUsers();
     } catch (err: any) {
       alert(err.response?.data?.message || 'Failed to delete user');
+    }
+  };
+
+  const handlePassSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!passTarget) return;
+    if (newPassword.length < 6) {
+      setPassError('Password must be at least 6 characters');
+      return;
+    }
+    setPassSubmitting(true);
+    setPassError('');
+    try {
+      await api.patch(`/users/${passTarget.id}/password`, { password: newPassword });
+      setPassOpen(false);
+      setNewPassword('');
+      setPassTarget(null);
+      alert('Password updated successfully');
+    } catch (err: any) {
+      setPassError(err.response?.data?.message || 'Failed to update password');
+    } finally {
+      setPassSubmitting(false);
     }
   };
 
@@ -238,6 +298,22 @@ export default function Users() {
                     <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
                       <IconButton
                         size="small"
+                        onClick={() => handleEdit(u)}
+                        title="Edit User"
+                        color="primary"
+                      >
+                        <EditIcon fontSize="small" />
+                      </IconButton>
+                      <IconButton
+                        size="small"
+                        onClick={() => { setPassTarget(u); setPassOpen(true); setPassError(''); setNewPassword(''); }}
+                        title="Change Password"
+                        color="info"
+                      >
+                        <VpnKeyIcon fontSize="small" />
+                      </IconButton>
+                      <IconButton
+                        size="small"
                         onClick={() => handleToggleStatus(u.id, u.isActive)}
                         title={u.isActive ? 'Deactivate' : 'Activate'}
                         color={u.isActive ? 'warning' : 'success'}
@@ -261,9 +337,10 @@ export default function Users() {
         </Table>
       </TableContainer>
 
+      {/* Add/Edit User Dialog */}
       <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
         <form onSubmit={handleSubmit}>
-          <DialogTitle sx={{ fontWeight: 700 }}>Add New User</DialogTitle>
+          <DialogTitle sx={{ fontWeight: 700 }}>{editingUser ? 'Edit User' : 'Add New User'}</DialogTitle>
           <DialogContent sx={{ pt: 1 }}>
             {error && (
               <Alert severity="error" sx={{ mb: 2 }}>
@@ -286,15 +363,17 @@ export default function Users() {
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               />
-              <TextField
-                label="Password"
-                type="password"
-                fullWidth
-                required
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                helperText="Minimum 6 characters"
-              />
+              {!editingUser && (
+                <TextField
+                  label="Password"
+                  type="password"
+                  fullWidth
+                  required
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  helperText="Minimum 6 characters"
+                />
+              )}
               <TextField
                 label="Department"
                 fullWidth
@@ -330,7 +409,41 @@ export default function Users() {
                 minWidth: 120,
               }}
             >
-              {submitting ? <CircularProgress size={20} color="inherit" /> : 'Create User'}
+              {submitting ? <CircularProgress size={20} color="inherit" /> : editingUser ? 'Save Changes' : 'Create User'}
+            </Button>
+          </DialogActions>
+        </form>
+      </Dialog>
+
+      {/* Password Change Dialog */}
+      <Dialog open={passOpen} onClose={() => setPassOpen(false)} maxWidth="xs" fullWidth>
+        <form onSubmit={handlePassSubmit}>
+          <DialogTitle sx={{ fontWeight: 700 }}>Change Password</DialogTitle>
+          <DialogContent>
+            <Typography variant="body2" sx={{ mb: 2 }}>
+              Changing password for <strong>{passTarget?.fullName}</strong>
+            </Typography>
+            {passError && <Alert severity="error" sx={{ mb: 2 }}>{passError}</Alert>}
+            <TextField
+              label="New Password"
+              type="password"
+              fullWidth
+              required
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              helperText="Minimum 6 characters"
+              autoFocus
+            />
+          </DialogContent>
+          <DialogActions sx={{ p: 3 }}>
+            <Button onClick={() => setPassOpen(false)} color="inherit">Cancel</Button>
+            <Button 
+              type="submit" 
+              variant="contained" 
+              color="primary"
+              disabled={passSubmitting}
+            >
+              {passSubmitting ? <CircularProgress size={20} color="inherit" /> : 'Update Password'}
             </Button>
           </DialogActions>
         </form>

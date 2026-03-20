@@ -38,12 +38,30 @@ export class UsersController {
     });
   }
 
+  @Patch(':id')
+  @UseGuards(RolesGuard)
+  @Roles(RoleEnum.DEALER, RoleEnum.ADMIN)
+  @ApiOperation({ summary: 'Update user profile details' })
+  async update(@Param('id') id: string, @Body() data: any) {
+    return this.users.update(id, data);
+  }
+
   @Patch(':id/status')
   @UseGuards(RolesGuard)
   @Roles(RoleEnum.DEALER, RoleEnum.ADMIN)
   @ApiOperation({ summary: 'Update user status (active/inactive)' })
   async updateStatus(@Param('id') id: string, @Body('isActive') isActive: boolean) {
-    return this.users.updateStatus(id, isActive);
+    // Basic logic for updating status still works through the generic update
+    return this.users.update(id, { isActive });
+  }
+
+  @Patch(':id/password')
+  @UseGuards(RolesGuard)
+  @Roles(RoleEnum.DEALER, RoleEnum.ADMIN)
+  @ApiOperation({ summary: 'Update/Reset user password' })
+  async updatePassword(@Param('id') id: string, @Body('password') pass: string) {
+    const hashed = await bcrypt.hash(pass, 10);
+    return this.users.updatePassword(id, hashed);
   }
 
   @Delete(':id')

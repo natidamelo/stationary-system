@@ -139,12 +139,30 @@ export class UsersService {
     });
   }
 
-  async updateStatus(userId: string, isActive: boolean) {
+  async update(userId: string, data: {
+    email?: string;
+    fullName?: string;
+    department?: string;
+    roleName?: string;
+    isActive?: boolean;
+  }) {
     const uid = toObjectId(userId);
     if (!uid) throw new NotFoundException('User not found');
-    const updated = await this.userModel.findByIdAndUpdate(uid, { isActive }, { new: true });
+
+    const updateData: any = { ...data };
+    if (data.email) updateData.email = data.email.toLowerCase();
+    
+    if (data.roleName) {
+      const role = await this.roleModel.findOne({ name: data.roleName }).lean();
+      if (!role) throw new NotFoundException('Role not found');
+      updateData.roleId = role._id;
+      delete updateData.roleName;
+    }
+
+    const updated = await this.userModel.findByIdAndUpdate(uid, { $set: updateData }, { new: true }).populate('roleId');
     if (!updated) throw new NotFoundException('User not found');
-    return toUser(updated as any);
+    
+    return this.findById(updated._id.toString());
   }
 
   async remove(userId: string) {
