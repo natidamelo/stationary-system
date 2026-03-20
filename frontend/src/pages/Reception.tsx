@@ -166,12 +166,20 @@ export default function Reception() {
           ));
         } else {
           // Add new line with the scanned item
-          setLines((prev) => [...prev, {
-            type: 'item' as const,
-            itemId: item.id,
-            quantity: 1,
-            unitPrice: Number(item.price) || 0,
-          }]);
+          setLines((prev) => {
+            const newLine: Line = {
+              type: 'item' as const,
+              itemId: item.id,
+              quantity: 1,
+              unitPrice: Number(item.price) || 0,
+            };
+            const lastLine = prev[prev.length - 1];
+            const isEmpty = lastLine && !lastLine.itemId && !lastLine.serviceId;
+            if (isEmpty) {
+              return [...prev.slice(0, -1), newLine];
+            }
+            return [...prev, newLine];
+          });
         }
         setBarcodeInput('');
         // Focus back on barcode input for next scan
