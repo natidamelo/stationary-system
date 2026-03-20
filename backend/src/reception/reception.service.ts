@@ -24,21 +24,30 @@ export class ReceptionService {
     const cleanTenantId = (tenantId || '').trim();
     const tid = toObjectId(cleanTenantId);
     if (!tid && !cleanTenantId) return `SAL-${Date.now()}`;
+    
+    // Find the latest sale for this tenant to get the next sequential number
     const last = await this.saleModel.findOne({ 
       $or: [{ tenantId: tid }, { tenantId: cleanTenantId }] 
     }).sort({ soldAt: -1 }).lean();
+    
     let num = 1;
     if (last && last.saleNumber) {
-        const match = last.saleNumber.match(/(\d+)$/);
+        // Try to extract any digits from the end of the last sale number
+        const match = last.saleNumber.match(/(\d+)(?!.*\d)/);
         if (match) {
             num = parseInt(match[1], 10) + 1;
+        } else {
+            // Fallback: if no digits found, count all sales for this tenant
+            num = (await this.saleModel.countDocuments({ 
+              $or: [{ tenantId: tid }, { tenantId: cleanTenantId }] 
+            })) + 1;
         }
     }
-    // Prepend tenant prefix and append timestamp to guarantee uniqueness
-    const prefix = tenantId.toString().slice(-4).toUpperCase();
-    const ts = Date.now().toString().slice(-6);
-    const finalSaleNumber = `SAL-${prefix}-${String(num).padStart(5, '0')}-${ts}`;
-    console.log(`[ReceptionService] Generated sale number: ${finalSaleNumber}`);
+    
+    // Simple sequential format (e.g., SAL-00001)
+    // This is unique per tenant because of the index: { tenantId, saleNumber }
+    const finalSaleNumber = `SAL-${String(num).padStart(5, '0')}`;
+    console.log(`[ReceptionService] Generated simple sale number: ${finalSaleNumber}`);
     return finalSaleNumber;
   }
 

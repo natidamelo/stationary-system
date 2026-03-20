@@ -26,16 +26,20 @@ export class InvoicesService {
       
     let num = 1;
     if (last && last.invoiceNumber) {
-        const match = last.invoiceNumber.match(/-(\d+)-/);
+        // Find the last numeric sequence in the string
+        const match = last.invoiceNumber.match(/(\d+)(?!.*\d)/);
         if (match) {
             num = parseInt(match[1], 10) + 1;
+        } else {
+            // Fallback: count invoices
+            num = (await this.invoiceModel.countDocuments({ 
+              $or: [{ tenantId: tid }, { tenantId: cleanTenantId }] 
+            })) + 1;
         }
     }
 
-    // Format: INV-[TenantPrefix]-[Sequence]-[Timestamp]
-    const prefix = tenantId.substring(0, 4).toUpperCase();
-    const ts = Date.now().toString().substring(7);
-    return `INV-${prefix}-${String(num).padStart(5, '0')}-${ts}`;
+    // Simple format: INV-00001 (sequential)
+    return `INV-${String(num).padStart(5, '0')}`;
   }
 
   private toInvoice(doc: any) {
