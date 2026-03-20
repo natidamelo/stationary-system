@@ -25,13 +25,18 @@ export default function BarcodeScannerDialog({ open, onClose, onScan }: BarcodeS
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
+    let isMounted = true;
+    let scanHandled = false;
 
     if (!open) {
       if (scannerRef.current) {
         if (scannerRef.current.isScanning) {
-          scannerRef.current.stop().catch(console.error);
+          scannerRef.current.stop().then(() => {
+            scannerRef.current?.clear();
+          }).catch(console.error);
+        } else {
+          try { scannerRef.current.clear(); } catch(e) {}
         }
-        scannerRef.current.clear();
         scannerRef.current = null;
       }
       return;
@@ -39,9 +44,11 @@ export default function BarcodeScannerDialog({ open, onClose, onScan }: BarcodeS
 
     setLoading(true);
     setError('');
+    scanHandled = false;
 
     // Give time for the modal DOM element to render
     timer = setTimeout(() => {
+      if (!isMounted) return;
       try {
         const formats = [
           Html5QrcodeSupportedFormats.CODE_128,
@@ -65,38 +72,42 @@ export default function BarcodeScannerDialog({ open, onClose, onScan }: BarcodeS
           },
           (decodedText) => {
             // Success handler
-            if (scannerRef.current?.isScanning) {
-              scannerRef.current.stop().then(() => {
-                onScan(decodedText);
-              }).catch(() => {
-                onScan(decodedText);
-              });
-            } else {
-              onScan(decodedText);
-            }
+            if (scanHandled) return;
+            scanHandled = true; // Prevent rapid duplicate fires
+            
+            // Just call onScan, the parent will close the dialog and trigger unmount cleanup
+            onScan(decodedText);
           },
           () => {
             // Ignore normal non-detection parse errors
           }
         ).then(() => {
-          setLoading(false);
+          if (isMounted) setLoading(false);
         }).catch((err) => {
-          setLoading(false);
-          setError(err?.message || "Failed to start camera. Make sure you granted permissions.");
+          if (isMounted) {
+            setLoading(false);
+            setError(err?.message || "Failed to start camera. Make sure you granted permissions.");
+          }
         });
       } catch (err: any) {
-        setLoading(false);
-        setError(err?.message || "Failed to initialize scanner.");
+        if (isMounted) {
+          setLoading(false);
+          setError(err?.message || "Failed to initialize scanner.");
+        }
       }
     }, 400);
 
     return () => {
+      isMounted = false;
       clearTimeout(timer);
       if (scannerRef.current) {
         if (scannerRef.current.isScanning) {
-          scannerRef.current.stop().catch(console.error);
+          scannerRef.current.stop().then(() => {
+            scannerRef.current?.clear();
+          }).catch(console.error);
+        } else {
+          try { scannerRef.current.clear(); } catch(e) {}
         }
-        scannerRef.current.clear();
         scannerRef.current = null;
       }
     };
