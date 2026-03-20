@@ -63,32 +63,41 @@ export default function BarcodeScannerDialog({ open, onClose, onScan }: BarcodeS
         const scanner = new Html5Qrcode("reader-container", { formatsToSupport: formats, verbose: false });
         scannerRef.current = scanner;
 
-        scanner.start(
-          { facingMode: "environment" },
-          {
-            fps: 15,
-            qrbox: { width: 250, height: 150 },
-            aspectRatio: 1.0,
-          },
-          (decodedText) => {
-            // Success handler
-            if (scanHandled) return;
-            scanHandled = true; // Prevent rapid duplicate fires
-            
-            // Just call onScan, the parent will close the dialog and trigger unmount cleanup
-            onScan(decodedText);
-          },
-          () => {
-            // Ignore normal non-detection parse errors
-          }
-        ).then(() => {
-          if (isMounted) setLoading(false);
-        }).catch((err) => {
-          if (isMounted) {
-            setLoading(false);
-            setError(err?.message || "Failed to start camera. Make sure you granted permissions.");
-          }
-        });
+        const config = {
+          fps: 15,
+          qrbox: { width: 250, height: 150 },
+          aspectRatio: 1.0,
+        };
+
+        const handleSuccess = (decodedText: string) => {
+          if (scanHandled) return;
+          scanHandled = true; // Prevent rapid duplicate fires
+          onScan(decodedText);
+        };
+
+        const handleError = () => {
+          // Ignore normal non-detection parse errors
+        };
+
+        scanner.start({ facingMode: "environment" }, config, handleSuccess, handleError)
+          .then(() => {
+            if (isMounted) setLoading(false);
+          })
+          .catch((err) => {
+            // Fallback for devices without a rear camera (like laptops/desktops)
+            if (isMounted) {
+              scanner.start({ facingMode: "user" }, config, handleSuccess, handleError)
+                .then(() => {
+                  if (isMounted) setLoading(false);
+                })
+                .catch((err2) => {
+                  if (isMounted) {
+                    setLoading(false);
+                    setError(err2?.message || err?.message || "Failed to start camera. Make sure you granted permissions.");
+                  }
+                });
+            }
+          });
       } catch (err: any) {
         if (isMounted) {
           setLoading(false);
