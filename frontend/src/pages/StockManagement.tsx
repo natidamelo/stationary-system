@@ -35,6 +35,11 @@ import PrintIcon from '@mui/icons-material/Print';
 import JsBarcode from 'jsbarcode';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import BarcodeScannerDialog from '../components/BarcodeScannerDialog';
+import { 
+  QrCodeScanner as QrCodeScannerIcon 
+} from '@mui/icons-material';
+import { InputAdornment } from '@mui/material';
 
 type LowStock = { id: string; sku: string; name: string; currentStock: number; reorderLevel: number; unit: string; category?: { name: string } };
 type Movement = { id: string; type: string; quantity: number; balanceAfter: number; createdAt: string; item?: { name: string; sku: string }; notes?: string };
@@ -112,6 +117,7 @@ export default function StockManagement() {
   const [itemToDelete, setItemToDelete] = useState<StockItem | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [cameraOpen, setCameraOpen] = useState(false);
 
   const printBarcode = (item: StockItem, count: number = 1) => {
     const barcode = item.barcode || item.sku;
@@ -1150,7 +1156,16 @@ export default function StockManagement() {
               value={itemForm.barcode}
               onChange={(e) => setItemForm((f) => ({ ...f, barcode: e.target.value }))}
               fullWidth
-              helperText="Leave empty to use SKU as barcode"
+              helperText="Optional: Scan or type product barcode"
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton onClick={() => setCameraOpen(true)} color="primary">
+                      <QrCodeScannerIcon />
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
             />
             <TextField
               type="number"
@@ -1242,6 +1257,14 @@ export default function StockManagement() {
           </Button>
         </DialogActions>
       </Dialog>
+      <BarcodeScannerDialog 
+        open={cameraOpen} 
+        onClose={() => setCameraOpen(false)} 
+        onScan={(code) => {
+          setItemForm((f) => ({ ...f, barcode: code }));
+          setCameraOpen(false);
+        }}
+      />
     </Box>
   );
 }

@@ -41,10 +41,9 @@ import {
   ShoppingBag as ShoppingBagIcon,
   Bolt as BoltIcon,
 } from '@mui/icons-material';
-import { BrowserMultiFormatReader } from '@zxing/browser';
-import { DecodeHintType, BarcodeFormat } from '@zxing/library';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
+import BarcodeScannerDialog from '../components/BarcodeScannerDialog';
 
 type Sale = {
   id: string;
@@ -100,19 +99,15 @@ export default function Reception() {
   const [payMethod, setPayMethod] = useState('cash');
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState('');
-  const [barcodeInput, setBarcodeInput] = useState('');
-  const [scanningBarcode, setScanningBarcode] = useState(false);
+  const [creatingInvoiceId, setCreatingInvoiceId] = useState<string | null>(null);
+  const [searchValue, setSearchValue] = useState<any>(null);
   const barcodeInputRef = useRef<HTMLInputElement>(null);
   const barcodeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [cameraOpen, setCameraOpen] = useState(false);
-  const [cameraError, setCameraError] = useState('');
-  const [cameraLoading, setCameraLoading] = useState(false);
-  const [cameraScanning, setCameraScanning] = useState(false);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const codeReaderRef = useRef<BrowserMultiFormatReader | null>(null);
   const navigate = useNavigate();
-  const [creatingInvoiceId, setCreatingInvoiceId] = useState<string | null>(null);
-  const [searchValue, setSearchValue] = useState<any>(null);
+  const [barcodeInput, setBarcodeInput] = useState('');
+  const [scanningBarcode, setScanningBarcode] = useState(false);
+
 
   const load = () => {
     api.get<Dashboard>('/reception/dashboard').then((r) => setDashboard(r.data)).catch(() => setLoading(false));
@@ -132,298 +127,8 @@ export default function Reception() {
       if (barcodeTimeoutRef.current) {
         clearTimeout(barcodeTimeoutRef.current);
       }
-      if (codeReaderRef.current) {
-        try {
-          (codeReaderRef.current as any).reset?.();
-        } catch (e) {
-          // Ignore reset errors during cleanup
-        }
-      }
     };
   }, []);
-
-  // Start/stop camera scanning when dialog opens/closes
-  useEffect(() => {
-    if (!cameraOpen) {
-      setCameraScanning(false);
-      if (codeReaderRef.current) {
-        try {
-          (codeReaderRef.current as any).reset?.();
-        } catch (e) {
-          // Ignore reset errors when closing
-        }
-        codeReaderRef.current = null;
-      }
-      // Stop all video tracks when closing
-      if (videoRef.current) {
-        const stream = videoRef.current.srcObject as MediaStream;
-        if (stream) {
-          stream.getTracks().forEach(track => track.stop());
-          videoRef.current.srcObject = null;
-        }
-      }
-      return;
-    }
-
-    setCameraError('');
-    setCameraLoading(true);
-    setCameraScanning(false);
-    
-    // Note: Browser will enforce secure context requirement automatically.
-    // If using ngrok free tier, make sure to click through the warning page first.
-
-    // Reduced delay for faster startup - dialog renders quickly
-    const timer = setTimeout(async () => {
-      const video = videoRef.current;
-      if (!video) {
-        console.error('❌ Video element not found');
-        setCameraError('Video element not found. Please try again.');
-        setCameraLoading(false);
-        return;
-      }
-
-      // Check if BrowserMultiFormatReader is available
-      if (typeof BrowserMultiFormatReader === 'undefined') {
-        setCameraError('Barcode scanner library not loaded. Please refresh the page and try again.');
-        setCameraLoading(false);
-        return;
-      }
-
-      let cancelled = false;
-      let started = false;
-      let reader: BrowserMultiFormatReader | null = null;
-      const CONFIRM_THRESHOLD = 2;
-      let lastDetected = '';
-      let detectCount = 0;
-
-      try {
-        const hints = new Map();
-        hints.set(DecodeHintType.POSSIBLE_FORMATS, [
-          BarcodeFormat.CODE_128,
-          BarcodeFormat.EAN_13,
-          BarcodeFormat.EAN_8,
-          BarcodeFormat.UPC_A,
-          BarcodeFormat.UPC_E,
-          BarcodeFormat.CODE_39,
-        ]);
-        hints.set(DecodeHintType.TRY_HARDER, true);
-        reader = new BrowserMultiFormatReader(hints, {
-          delayBetweenScanAttempts: 100,
-        });
-        codeReaderRef.current = reader;
-
-        // Give user time to accept the browser permission dialog
-        const startWatchdog = window.setTimeout(() => {
-          if (!cancelled && !started) {
-            setCameraLoading(false);
-            setCameraError('Camera is taking too long to start. Please allow camera access when prompted, then try again.');
-          }
-        }, 60000);
-
-        // Ensure video element is ready
-        if (!video) {
-          setCameraError('Video element not available. Please try again.');
-          setCameraLoading(false);
-          return;
-        }
-
-        const onVideoPlaying = () => {
-          video.removeEventListener('playing', onVideoPlaying);
-        };
-        video.addEventListener('playing', onVideoPlaying);
-        
-        const constraints: MediaStreamConstraints = {
-          video: {
-            facingMode: { ideal: 'environment' },
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-            focusMode: { ideal: 'continuous' },
-          } as MediaTrackConstraints,
-        };
-
-        reader
-          .decodeFromConstraints(constraints, video, (result, err, controls) => {
-            if (!started) {
-              started = true;
-              window.clearTimeout(startWatchdog);
-              setCameraLoading(false);
-              setCameraScanning(true);
-            }
-
-            if (cancelled) {
-              setCameraScanning(false);
-              return;
-            }
-
-            if (err) {
-              // NotFoundException and NotFoundException2 are normal - they just mean no barcode detected yet
-              // The scanner continuously scans frames and throws these when no barcode is found
-              if (err.name === 'NotFoundException' || err.name === 'NotFoundException2') {
-                return; // Normal — no barcode in this frame
-              }
-
-              // Only log and handle real errors
-              console.error('Scan error:', err);
-              const errorMessage = err.message || String(err);
-              
-              // Check for specific error types
-              if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-                setCameraError('Camera permission denied. Please allow camera access in your browser settings.');
-              } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
-                setCameraError('No camera found on this device.');
-              } else if (err.name === 'NotReadableError') {
-                setCameraError('Camera is already in use by another app. Close other apps and try again.');
-              } else if (errorMessage.includes('MultiFormat Readers') || errorMessage.includes('No readers')) {
-                // This is an initialization error from ZXing - only show if it's a real problem
-                // Check if the error message indicates initialization failure vs just no detection
-                if (errorMessage.includes('were able to detect')) {
-                  // This is just "no barcode detected" - ignore it
-                  return;
-                }
-                setCameraError('Barcode scanner initialization failed. Please refresh the page and try again.');
-              } else {
-                // Only show errors that aren't just "no barcode detected" messages
-                const isDetectionError = errorMessage.toLowerCase().includes('not found') || 
-                                       errorMessage.toLowerCase().includes('no code') ||
-                                       (errorMessage.toLowerCase().includes('detect') && 
-                                        errorMessage.toLowerCase().includes('unable'));
-                
-                if (!isDetectionError) {
-                  setCameraError(`Camera error: ${errorMessage}`);
-                }
-              }
-              return;
-            }
-
-            if (result) {
-              const text = result.getText();
-              
-              if (!text || !text.trim()) {
-                return;
-              }
-              
-              const barcodeText = text.trim();
-              
-              // Require the same value N times consecutively to avoid misreads
-              if (barcodeText === lastDetected) {
-                detectCount++;
-              } else {
-                lastDetected = barcodeText;
-                detectCount = 1;
-              }
-              
-              if (detectCount < CONFIRM_THRESHOLD) {
-                // Not confirmed yet — keep scanning
-                return;
-              }
-              
-              console.log('✅ Barcode confirmed:', barcodeText);
-              
-              // Stop scanning immediately
-              cancelled = true;
-              setCameraScanning(false);
-              try {
-                controls.stop();
-              } catch (e) {
-                // ignore
-              }
-              
-              if (reader) {
-                try { (reader as any).reset?.(); } catch (e) { /* ignore */ }
-              }
-              
-              handleBarcodeScan(barcodeText).finally(() => {
-                setCameraOpen(false);
-              });
-            }
-          })
-          .catch(async (err: any) => {
-            if (err?.name === 'OverconstrainedError' && reader) {
-              console.warn('Constraints not supported, falling back to default camera');
-              try {
-                await reader.decodeFromVideoDevice(undefined, video, (result, err2, controls) => {
-                  if (!started) {
-                    started = true;
-                    window.clearTimeout(startWatchdog);
-                    setCameraLoading(false);
-                    setCameraScanning(true);
-                  }
-                  if (cancelled) { setCameraScanning(false); return; }
-                  if (err2) {
-                    if (err2.name === 'NotFoundException' || err2.name === 'NotFoundException2') return;
-                    return;
-                  }
-                  if (result) {
-                    const text = result.getText();
-                    if (!text || !text.trim()) return;
-                    const barcodeText = text.trim();
-                    if (barcodeText === lastDetected) { detectCount++; } else { lastDetected = barcodeText; detectCount = 1; }
-                    if (detectCount < CONFIRM_THRESHOLD) return;
-                    cancelled = true;
-                    setCameraScanning(false);
-                    try { controls.stop(); } catch (_e) { /* ignore */ }
-                    handleBarcodeScan(barcodeText).finally(() => setCameraOpen(false));
-                  }
-                });
-                return;
-              } catch (_fallbackErr) {
-                // Fall through to error handling below
-              }
-            }
-
-            window.clearTimeout(startWatchdog);
-            setCameraLoading(false);
-            console.error('Camera start error', err);
-            const errorMessage = err?.message || String(err);
-            
-            if (err?.name === 'NotAllowedError' || err?.name === 'PermissionDeniedError') {
-              setCameraError('Camera permission denied. Please allow camera access in your browser settings.');
-            } else if (err?.name === 'NotFoundError' || err?.name === 'DevicesNotFoundError') {
-              setCameraError('No camera found on this device.');
-            } else if (err?.name === 'NotReadableError') {
-              setCameraError('Camera is already in use by another app. Close other apps and try again.');
-            } else if (err?.name === 'SecurityError') {
-              setCameraError('Camera requires HTTPS. If using ngrok, click through the warning page first, then try again.');
-            } else if (err?.name === 'OverconstrainedError') {
-              setCameraError('Camera settings are not supported by your device. Please try a different camera or browser.');
-            } else if (errorMessage.includes('MultiFormat Readers') || errorMessage.includes('No readers')) {
-              setCameraError('Barcode scanner initialization failed. Please refresh the page and try again.');
-            } else {
-              setCameraError('Could not start camera. Please check browser permissions and try again.');
-            }
-          });
-      } catch (err: any) {
-        setCameraLoading(false);
-        console.error('Failed to initialize barcode reader', err);
-        const errorMessage = err?.message || String(err);
-        if (errorMessage.includes('MultiFormat Readers') || errorMessage.includes('No readers')) {
-          setCameraError('Barcode scanner initialization failed. Please refresh the page and try again.');
-        } else {
-          setCameraError('Failed to initialize barcode scanner. Please try again.');
-        }
-      }
-    }, 100); // Minimal delay - just enough for video element to be ready
-
-    return () => {
-      clearTimeout(timer);
-      if (codeReaderRef.current) {
-        try {
-          (codeReaderRef.current as any).reset?.();
-        } catch (e) {
-          // Ignore reset errors during cleanup
-        }
-      }
-      codeReaderRef.current = null;
-      // Stop video tracks
-      if (videoRef.current) {
-        const stream = videoRef.current.srcObject as MediaStream;
-        if (stream) {
-          stream.getTracks().forEach(track => track.stop());
-          videoRef.current.srcObject = null;
-        }
-      }
-    };
-  }, [cameraOpen]);
 
   useEffect(() => {
     if (dashboard && (items.length || services.length)) {
@@ -476,7 +181,7 @@ export default function Reception() {
         setTimeout(() => setSellError(''), 3000);
       }
     } catch (err: unknown) {
-      const res = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      const res = (err as { response?: { data?: { message?: string } } })?.response?.data.message;
       setSellError(res || `Item with barcode "${barcode}" not found.`);
       setTimeout(() => setSellError(''), 3000);
     } finally {
@@ -1153,102 +858,13 @@ export default function Reception() {
       </Grid>
 
       {/* Camera barcode scanner dialog */}
-      <Dialog open={cameraOpen} onClose={() => setCameraOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>Scan barcode with camera</DialogTitle>
-        <DialogContent>
-          {cameraError && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {cameraError}
-            </Alert>
-          )}
-          {!cameraError && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mt: 1, minHeight: 240, bgcolor: '#000', borderRadius: 2, position: 'relative' }}>
-              <video
-                ref={videoRef}
-                style={{ 
-                  width: '100%', 
-                  maxHeight: 320, 
-                  borderRadius: 8,
-                  objectFit: 'contain',
-                  display: 'block'
-                }}
-                muted
-                autoPlay
-                playsInline
-              />
-              {cameraLoading && (
-                <Box sx={{ 
-                  position: 'absolute', 
-                  top: '50%', 
-                  left: '50%', 
-                  transform: 'translate(-50%, -50%)',
-                  color: 'white',
-                  textAlign: 'center'
-                }}>
-                  <CircularProgress size={40} sx={{ color: 'white', mb: 1 }} />
-                  <Typography variant="body2">Starting camera...</Typography>
-                </Box>
-              )}
-              {scanningBarcode && !cameraLoading && (
-                <Box sx={{ 
-                  position: 'absolute', 
-                  top: '50%', 
-                  left: '50%', 
-                  transform: 'translate(-50%, -50%)',
-                  color: 'white',
-                  textAlign: 'center',
-                  bgcolor: 'rgba(0,0,0,0.7)',
-                  px: 2,
-                  py: 1,
-                  borderRadius: 1
-                }}>
-                  <Typography variant="body2" fontWeight={600}>Processing barcode...</Typography>
-                </Box>
-              )}
-              {cameraScanning && !cameraLoading && !scanningBarcode && (
-                <Box sx={{ 
-                  position: 'absolute', 
-                  bottom: 16,
-                  left: '50%', 
-                  transform: 'translateX(-50%)',
-                  color: 'white',
-                  textAlign: 'center',
-                  bgcolor: 'rgba(0,0,0,0.6)',
-                  px: 2,
-                  py: 1,
-                  borderRadius: 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 1
-                }}>
-                  <Box sx={{ 
-                    width: 8, 
-                    height: 8, 
-                    borderRadius: '50%', 
-                    bgcolor: '#4ade80',
-                    animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-                    '@keyframes pulse': {
-                      '0%, 100%': { opacity: 1 },
-                      '50%': { opacity: 0.5 }
-                    }
-                  }} />
-                  <Typography variant="body2" fontWeight={500}>Scanning...</Typography>
-                </Box>
-              )}
-            </Box>
-          )}
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-            {cameraError 
-              ? (cameraError.includes('HTTPS') 
-                  ? 'If using ngrok, make sure you clicked through the warning page first. Then allow camera access when prompted.'
-                  : 'Please allow camera access when prompted, or check your browser settings.')
-              : 'Point your device\'s camera at the item barcode. The item will be added automatically once detected.'}
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setCameraOpen(false)}>Close</Button>
-        </DialogActions>
-      </Dialog>
+      <BarcodeScannerDialog 
+        open={cameraOpen} 
+        onClose={() => setCameraOpen(false)} 
+        onScan={(text) => {
+          handleBarcodeScan(text).finally(() => setCameraOpen(false));
+        }} 
+      />
 
       <Dialog open={!!payDialogSale} onClose={() => !paying && setPayDialogSale(null)} maxWidth="xs" fullWidth>
         <DialogTitle>Pay balance</DialogTitle>

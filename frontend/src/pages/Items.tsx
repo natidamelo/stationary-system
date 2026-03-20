@@ -25,10 +25,15 @@ import {
   IconButton,
   Tooltip,
 } from '@mui/material';
-import { Print as PrintIcon } from '@mui/icons-material';
+import { 
+  Print as PrintIcon,
+  QrCodeScanner as QrCodeScannerIcon 
+} from '@mui/icons-material';
 import JsBarcode from 'jsbarcode';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import BarcodeScannerDialog from '../components/BarcodeScannerDialog';
+import { InputAdornment } from '@mui/material';
 
 type Item = {
   id: string;
@@ -62,6 +67,7 @@ export default function Items() {
   const [deleteModal, setDeleteModal] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<Item | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [cameraOpen, setCameraOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImportCsv = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -417,7 +423,22 @@ export default function Items() {
               {form.imageUrl && <Box component="img" src={form.imageUrl} sx={{ height: 40, borderRadius: 1 }} />}
             </Box>
             <TextField label="Unit" value={form.unit} onChange={(e) => setForm((f) => ({ ...f, unit: e.target.value }))} fullWidth />
-            <TextField label="Barcode" value={form.barcode} onChange={(e) => setForm((f) => ({ ...f, barcode: e.target.value }))} fullWidth helperText="Leave empty to use SKU as barcode" />
+            <TextField 
+              label="Barcode" 
+              value={form.barcode} 
+              onChange={(e) => setForm((f) => ({ ...f, barcode: e.target.value }))} 
+              fullWidth 
+              helperText="Leave empty to use SKU as barcode"
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton onClick={() => setCameraOpen(true)} color="primary">
+                      <QrCodeScannerIcon />
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
             <TextField type="number" label="Reorder level" value={form.reorderLevel} onChange={(e) => setForm((f) => ({ ...f, reorderLevel: Number(e.target.value) }))} inputProps={{ min: 0 }} fullWidth />
             <TextField type="number" label="Price (selling)" value={form.price} onChange={(e) => setForm((f) => ({ ...f, price: Number(e.target.value) }))} inputProps={{ min: 0, step: 0.01 }} fullWidth />
             <TextField type="number" label="Cost (COGS)" value={form.costPrice} onChange={(e) => setForm((f) => ({ ...f, costPrice: Number(e.target.value) }))} inputProps={{ min: 0, step: 0.01 }} helperText="Unit cost used for Cost of Goods Sold when sold" fullWidth />
@@ -483,6 +504,15 @@ export default function Items() {
           </Button>
         </DialogActions>
       </Dialog>
+      
+      <BarcodeScannerDialog 
+        open={cameraOpen} 
+        onClose={() => setCameraOpen(false)} 
+        onScan={(code) => {
+          setForm((f) => ({ ...f, barcode: code }));
+          setCameraOpen(false);
+        }}
+      />
     </Box>
   );
 }
