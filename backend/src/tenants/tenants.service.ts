@@ -58,6 +58,7 @@ export class TenantsService {
           createdAt: tenant.createdAt,
           adminName: (adminUser as any)?.fullName || null,
           adminEmail: (adminUser as any)?.email || null,
+          adminUserId: (adminUser as any)?._id?.toString() || null,
           licenseCount,
           activeLicenseCount,
         };

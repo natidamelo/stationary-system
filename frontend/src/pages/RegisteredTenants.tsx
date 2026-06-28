@@ -43,6 +43,7 @@ type Tenant = {
   createdAt: string;
   adminName: string | null;
   adminEmail: string | null;
+  adminUserId?: string | null;
   licenseCount: number;
   activeLicenseCount: number;
 };
@@ -98,7 +99,8 @@ function LicenseRow({ tenantId }: { tenantId: string }) {
               <Chip
                 label={l.status}
                 size="small"
-                color={l.status === 'active' ? 'success' : l.status === 'expired' ? 'error' : 'warning'}
+                color={l.status === 'active' ? 'success' : 'default'}
+                sx={{ fontSize: '0.65rem', height: 18, textTransform: 'uppercase', fontWeight: 700 }}
               />
             </TableCell>
           </TableRow>
@@ -113,11 +115,13 @@ function TenantRow({
   onDelete,
   onGiveLicense,
   onToggleStatus,
+  onResetPassword,
 }: {
   tenant: Tenant;
   onDelete: (t: Tenant) => void;
   onGiveLicense: (t: Tenant) => void;
   onToggleStatus: (t: Tenant) => void;
+  onResetPassword: (t: Tenant) => void;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -150,12 +154,21 @@ function TenantRow({
         </TableCell>
         <TableCell>
           {tenant.adminEmail ? (
-            <Box>
-              <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <PersonRoundedIcon sx={{ fontSize: '0.9rem', color: 'text.secondary' }} />
-                {tenant.adminName}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">{tenant.adminEmail}</Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pr: 2 }}>
+              <Box>
+                <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <PersonRoundedIcon sx={{ fontSize: '0.9rem', color: 'text.secondary' }} />
+                  {tenant.adminName}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">{tenant.adminEmail}</Typography>
+              </Box>
+              {tenant.adminUserId && (
+                <Tooltip title="Reset administrator password">
+                  <IconButton size="small" onClick={() => onResetPassword(tenant)} color="warning">
+                    <VpnKeyRoundedIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              )}
             </Box>
           ) : (
             <Typography variant="caption" color="text.disabled">—</Typography>
@@ -178,25 +191,27 @@ function TenantRow({
         <TableCell>
           <Tooltip title={tenant.isActive ? "Click to deactivate tenant" : "Click to activate tenant"}>
             <Chip
-              label={tenant.isActive ? 'Active' : 'Inactive'}
+              label={tenant.isActive ? "Active" : "Inactive"}
               size="small"
-              color={tenant.isActive ? 'success' : 'error'}
+              color={tenant.isActive ? "success" : "default"}
               onClick={() => onToggleStatus(tenant)}
-              sx={{ cursor: 'pointer', transition: 'all 0.2s', '&:hover': { opacity: 0.8, transform: 'scale(1.05)' } }}
+              sx={{ cursor: 'pointer', fontWeight: 600 }}
             />
           </Tooltip>
         </TableCell>
         <TableCell align="right">
-          <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
-            <Tooltip title="Give License">
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+            <Tooltip title="Issue new license key">
               <Button
+                variant="outlined"
                 size="small"
-                variant="contained"
                 startIcon={<VpnKeyRoundedIcon fontSize="small" />}
                 onClick={() => onGiveLicense(tenant)}
                 sx={{
-                  background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+                  borderRadius: 2,
+                  textTransform: 'none',
                   fontSize: '0.75rem',
+                  py: 0.5,
                 }}
               >
                 Give License
@@ -263,6 +278,13 @@ export default function RegisteredTenants() {
     email: '',
     password: '',
   });
+
+  // Reset Password Dialog
+  const [resetTarget, setResetTarget] = useState<Tenant | null>(null);
+  const [resetPasswordVal, setResetPasswordVal] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetError, setResetError] = useState('');
+  const [resetSuccess, setResetSuccess] = useState('');
 
   const fetchTenants = () => {
     setLoading(true);
@@ -345,6 +367,30 @@ export default function RegisteredTenants() {
     }
   };
 
+  const openResetDialog = (t: Tenant) => {
+    setResetTarget(t);
+    setResetPasswordVal('');
+    setResetError('');
+    setResetSuccess('');
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetTarget || !resetTarget.adminUserId) return;
+    setResetLoading(true);
+    setResetError('');
+    setResetSuccess('');
+    try {
+      await api.patch(`/users/${resetTarget.adminUserId}/password`, { password: resetPasswordVal });
+      setResetSuccess(`Password for ${resetTarget.adminName} has been successfully updated.`);
+      setResetPasswordVal('');
+    } catch (e: any) {
+      setResetError(e.response?.data?.message || 'Failed to update password');
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
   if (loading) return <CircularProgress sx={{ display: 'block', mx: 'auto', mt: 6 }} />;
 
   return (
@@ -407,6 +453,7 @@ export default function RegisteredTenants() {
                   onDelete={setDeleteTarget}
                   onGiveLicense={openLicenseDialog}
                   onToggleStatus={handleToggleStatus}
+                  onResetPassword={openResetDialog}
                 />
               ))}
             </TableBody>
@@ -589,6 +636,46 @@ export default function RegisteredTenants() {
             >
               {addLoading ? 'Creating...' : 'Register Shop'}
             </Button>
+          </DialogActions>
+        </form>
+      </Dialog>
+
+      {/* Reset Password Dialog */}
+      <Dialog open={!!resetTarget} onClose={() => !resetLoading && setResetTarget(null)} maxWidth="xs" fullWidth>
+        <form onSubmit={handleResetPassword}>
+          <DialogTitle sx={{ fontWeight: 700 }}>Reset Admin Password</DialogTitle>
+          <DialogContent>
+            {resetError && <Alert severity="error" sx={{ mb: 2 }}>{resetError}</Alert>}
+            {resetSuccess && <Alert severity="success" sx={{ mb: 2 }}>{resetSuccess}</Alert>}
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Update the password for administrator <strong>{resetTarget?.adminName}</strong> ({resetTarget?.adminEmail}).
+            </Typography>
+            <TextField
+              label="New Password"
+              type="password"
+              fullWidth
+              required
+              value={resetPasswordVal}
+              onChange={(e) => setResetPasswordVal(e.target.value)}
+              margin="dense"
+              disabled={!!resetSuccess}
+            />
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 2 }}>
+            <Button onClick={() => setResetTarget(null)} disabled={resetLoading}>
+              {resetSuccess ? 'Close' : 'Cancel'}
+            </Button>
+            {!resetSuccess && (
+              <Button
+                type="submit"
+                variant="contained"
+                color="warning"
+                disabled={resetLoading || !resetPasswordVal}
+                startIcon={resetLoading ? <CircularProgress size={16} color="inherit" /> : <VpnKeyRoundedIcon />}
+              >
+                {resetLoading ? 'Resetting...' : 'Reset Password'}
+              </Button>
+            )}
           </DialogActions>
         </form>
       </Dialog>
