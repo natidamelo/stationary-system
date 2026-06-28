@@ -166,7 +166,6 @@ export default function Layout() {
     { to: '/messages', label: 'Messages', icon: <ForumRoundedIcon fontSize="small" /> },
     ...(role === 'admin' || role === 'manager' || role === 'dealer' ? [{ to: '/stores', label: 'Stores', icon: <BusinessRoundedIcon fontSize="small" /> }] : []),
     ...(role === 'admin' || role === 'manager' || role === 'dealer' ? [{ to: '/reports', label: 'Reports', icon: <AssessmentRoundedIcon fontSize="small" /> }] : []),
-    ...(role === 'admin' || role === 'manager' || role === 'dealer' ? [{ to: '/financial-reports', label: 'Financial Reports', icon: <LocalAtmRoundedIcon fontSize="small" /> }] : []),
   ];
 
   const dealerGroup = [
