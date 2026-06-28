@@ -236,7 +236,7 @@ export default function Layout() {
         </Box>
         <Box>
           <Typography variant="subtitle1" fontWeight={800} sx={{ lineHeight: 1.1, color: '#4f46e5', letterSpacing: '-0.02em', fontSize: '1.1rem' }}>
-            WOUBREX PLC
+            {settings.stationeryName || 'WOUBREX PLC'}
           </Typography>
           <Typography variant="caption" sx={{ color: '#64748b', fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.05em' }}>
             STOCK MANAGEMENT SYSTEM
@@ -421,7 +421,7 @@ export default function Layout() {
                     display: { xs: 'none', md: 'block' } 
                   }}
                 >
-                  WOUBREX STOCK MANAGEMENT SYSTEM
+                  {`${settings.stationeryName || 'WOUBREX'} STOCK MANAGEMENT SYSTEM`.toUpperCase()}
                 </Typography>
               </Box>
             </Box>
