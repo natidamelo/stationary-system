@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+require('dotenv').config({ path: './backend/.env' });
 
 async function fixTenants() {
     // You might need to provide the actual DB URL here if it's not localhost

@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
+require('dotenv').config({ path: './backend/.env' });
 
-const uri = "mongodb+srv://kinfenati7_db_user:3nCkjUWaBLmIMG0C@cluster0.usuuyhh.mongodb.net/stationery_management?appName=Cluster0";
+const uri = process.env.MONGODB_URI || "mongodb+srv://kinfenati7_db_user:Nat2325%3F@cluster0.ldkwywk.mongodb.net/stationery_management?appName=Cluster0";
 
 async function run() {
   try {

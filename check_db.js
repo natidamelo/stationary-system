@@ -3,7 +3,7 @@ require('dotenv').config({ path: './backend/.env' });
 
 async function checkRoles() {
   try {
-    const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/stationary-system';
+    const uri = process.env.MONGODB_URI || "mongodb+srv://kinfenati7_db_user:Nat2325%3F@cluster0.ldkwywk.mongodb.net/stationery_management?appName=Cluster0";
     console.log('Connecting to:', uri);
     await mongoose.connect(uri);
     console.log('Connected.');

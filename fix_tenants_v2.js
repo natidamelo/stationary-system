@@ -1,7 +1,9 @@
 const mongoose = require('mongoose');
+require('dotenv').config({ path: './backend/.env' });
 
 async function fixData() {
-    await mongoose.connect('mongodb://localhost:27017/stationery_management');
+    const url = process.env.MONGODB_URI || 'mongodb://localhost:27017/stationery_management';
+    await mongoose.connect(url);
     
     const Tenant = mongoose.model('Tenant', new mongoose.Schema({}, { strict: false }), 'tenants');
     let tenant = await Tenant.findOne({ name: 'Default Tenant' });

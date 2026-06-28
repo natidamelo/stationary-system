@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+require('dotenv').config({ path: './backend/.env' });
 
 async function checkStatus() {
     const url = process.env.DATABASE_URL || process.env.MONGODB_URI || 'mongodb://localhost:27017/stationery_management';
