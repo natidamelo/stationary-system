@@ -25,6 +25,7 @@ import {
   InputAdornment,
   IconButton,
   Divider,
+  Paper,
 } from '@mui/material';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import SendRoundedIcon from '@mui/icons-material/SendRounded';
