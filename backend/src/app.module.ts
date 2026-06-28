@@ -27,6 +27,7 @@ import { AppService } from './app.service';
 import { TenantsModule } from './tenants/tenants.module';
 import { StoresModule } from './stores/stores.module';
 import { StoreTransfersModule } from './store-transfers/store-transfers.module';
+import { MessagesModule } from './messages/messages.module';
 
 @Module({
   imports: [
@@ -61,6 +62,7 @@ import { StoreTransfersModule } from './store-transfers/store-transfers.module';
     TenantsModule,
     StoresModule,
     StoreTransfersModule,
+    MessagesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
