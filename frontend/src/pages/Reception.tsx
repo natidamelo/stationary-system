@@ -44,6 +44,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import BarcodeScannerDialog from '../components/BarcodeScannerDialog';
+import { useUsbBarcodeScanner } from '../hooks/useUsbBarcodeScanner';
 
 type Sale = {
   id: string;
@@ -107,6 +108,11 @@ export default function Reception() {
   const navigate = useNavigate();
   const [barcodeInput, setBarcodeInput] = useState('');
   const [scanningBarcode, setScanningBarcode] = useState(false);
+
+  // Register USB Barcode Scanner hook for global scanning
+  useUsbBarcodeScanner(handleBarcodeScan, {
+    excludeIds: ['barcode-input-field'],
+  });
 
 
   const load = () => {
@@ -363,7 +369,25 @@ export default function Reception() {
 
   return (
     <Box>
-      <Typography variant="h5" fontWeight={600} sx={{ mb: 2 }}>Reception – Sell items</Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap', mb: 2 }}>
+        <Typography variant="h5" fontWeight={600}>Reception – Sell items</Typography>
+        <Box sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 0.5,
+          px: 1.5,
+          py: 0.5,
+          borderRadius: '20px',
+          bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(56, 189, 248, 0.15)' : '#e0f2fe',
+          color: (theme) => theme.palette.mode === 'dark' ? '#38bdf8' : '#0369a1',
+          border: '1px solid',
+          borderColor: (theme) => theme.palette.mode === 'dark' ? 'rgba(56, 189, 248, 0.3)' : '#bae6fd',
+          fontSize: '0.75rem',
+          fontWeight: 600
+        }}>
+          <span style={{ fontSize: '0.85rem' }}>🔌</span> USB Scanner Active (DS210)
+        </Box>
+      </Box>
 
       <Grid container spacing={2} sx={{ mb: 2 }}>
         <Grid size={{ xs: 12, md: 6 }}>
@@ -371,6 +395,7 @@ export default function Reception() {
             <CardContent>
               <Typography variant="h6" gutterBottom>New sale</Typography>
               <TextField 
+                id="barcode-input-field"
                 label="Scan barcode" 
                 value={barcodeInput}
                 onChange={(e) => handleBarcodeInputChange(e.target.value)}

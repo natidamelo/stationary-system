@@ -24,6 +24,9 @@ import {
   CircularProgress,
   IconButton,
   Tooltip,
+  Snackbar,
+  Alert,
+  InputAdornment,
 } from '@mui/material';
 import { 
   Print as PrintIcon,
@@ -33,7 +36,8 @@ import JsBarcode from 'jsbarcode';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import BarcodeScannerDialog from '../components/BarcodeScannerDialog';
-import { InputAdornment } from '@mui/material';
+import { useUsbBarcodeScanner } from '../hooks/useUsbBarcodeScanner';
+
 
 type Item = {
   id: string;
@@ -69,6 +73,96 @@ export default function Items() {
   const [deleting, setDeleting] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // USB Barcode Scanner State & Notifications
+  const [scanNotification, setScanNotification] = useState<{
+    open: boolean;
+    message: string;
+    severity: 'success' | 'info' | 'warning' | 'error';
+  }>({
+    open: false,
+    message: '',
+    severity: 'info',
+  });
+
+  const handleBarcodeScan = async (barcode: string) => {
+    // If the Add/Edit form is already open, prefill the scanned barcode/SKU
+    if (modal !== null) {
+      setForm((f) => ({
+        ...f,
+        barcode: barcode,
+        sku: f.sku ? f.sku : barcode, // Fill SKU with barcode if SKU is currently empty
+      }));
+      setScanNotification({
+        open: true,
+        message: `Prefilled barcode: ${barcode}`,
+        severity: 'success',
+      });
+      return;
+    }
+
+    // Otherwise, search for the item in the database
+    setScanNotification({
+      open: true,
+      message: `Scanning barcode: ${barcode}...`,
+      severity: 'info',
+    });
+
+    try {
+      const response = await api.get<Item | null>(`/items/barcode/${barcode}`);
+      const foundItem = response.data;
+
+      if (foundItem) {
+        setScanNotification({
+          open: true,
+          message: `Found item: "${foundItem.name}". Opening edit dialog.`,
+          severity: 'success',
+        });
+        openEdit(foundItem);
+      } else {
+        setScanNotification({
+          open: true,
+          message: `Barcode "${barcode}" not found. Opening add form.`,
+          severity: 'warning',
+        });
+        // Prefill form and open in "add" mode
+        setForm({
+          sku: barcode,
+          name: '',
+          categoryId: '',
+          unit: 'unit',
+          reorderLevel: 0,
+          price: 0,
+          costPrice: 0,
+          barcode: barcode,
+          imageUrl: '',
+        });
+        setEditingId(null);
+        setModal('add');
+
+        // Focus the name field so the user can immediately type the product name
+        setTimeout(() => {
+          const nameField = document.getElementById('name-field');
+          if (nameField) {
+            nameField.focus();
+          }
+        }, 100);
+      }
+    } catch (error) {
+      console.error('Error finding barcode:', error);
+      setScanNotification({
+        open: true,
+        message: `Error searching barcode "${barcode}".`,
+        severity: 'error',
+      });
+    }
+  };
+
+  // Register USB Barcode Scanner hook
+  useUsbBarcodeScanner(handleBarcodeScan, {
+    excludeIds: ['sku-field', 'barcode-field'],
+  });
+
 
   const handleImportCsv = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -308,7 +402,25 @@ export default function Items() {
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1, mb: 2 }}>
-        <Typography variant="h5" fontWeight={600}>Items</Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+          <Typography variant="h5" fontWeight={600}>Items</Typography>
+          <Box sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 0.5,
+            px: 1.5,
+            py: 0.5,
+            borderRadius: '20px',
+            bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(56, 189, 248, 0.15)' : '#e0f2fe',
+            color: (theme) => theme.palette.mode === 'dark' ? '#38bdf8' : '#0369a1',
+            border: '1px solid',
+            borderColor: (theme) => theme.palette.mode === 'dark' ? 'rgba(56, 189, 248, 0.3)' : '#bae6fd',
+            fontSize: '0.75rem',
+            fontWeight: 600
+          }}>
+            <span style={{ fontSize: '0.85rem' }}>🔌</span> USB Scanner Active (DS210)
+          </Box>
+        </Box>
         {canEdit(user?.role ?? '') && (
           <Box sx={{ display: 'flex', gap: 1 }}>
             <input type="file" accept=".csv" ref={fileInputRef} style={{ display: 'none' }} onChange={handleImportCsv} />
@@ -406,8 +518,8 @@ export default function Items() {
         <DialogTitle>{modal === 'add' ? 'Add item' : 'Edit item'}</DialogTitle>
         <DialogContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
-            <TextField label="SKU" value={form.sku} onChange={(e) => setForm((f) => ({ ...f, sku: e.target.value }))} fullWidth />
-            <TextField label="Name" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} fullWidth />
+            <TextField id="sku-field" label="SKU" value={form.sku} onChange={(e) => setForm((f) => ({ ...f, sku: e.target.value }))} fullWidth />
+            <TextField id="name-field" label="Name" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} fullWidth />
             <FormControl fullWidth>
               <InputLabel>Category</InputLabel>
               <Select value={form.categoryId} label="Category" onChange={(e) => setForm((f) => ({ ...f, categoryId: e.target.value }))}>
@@ -426,6 +538,7 @@ export default function Items() {
             </Box>
             <TextField label="Unit" value={form.unit} onChange={(e) => setForm((f) => ({ ...f, unit: e.target.value }))} fullWidth />
             <TextField 
+              id="barcode-field"
               label="Barcode" 
               value={form.barcode} 
               onChange={(e) => setForm((f) => ({ ...f, barcode: e.target.value }))} 
@@ -515,6 +628,23 @@ export default function Items() {
           setCameraOpen(false);
         }}
       />
+
+      {/* USB Barcode Scan Feedback Toast */}
+      <Snackbar
+        open={scanNotification.open}
+        autoHideDuration={4000}
+        onClose={() => setScanNotification((prev) => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert
+          onClose={() => setScanNotification((prev) => ({ ...prev, open: false }))}
+          severity={scanNotification.severity}
+          variant="filled"
+          sx={{ width: '100%', borderRadius: '12px', boxShadow: 3 }}
+        >
+          {scanNotification.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }
