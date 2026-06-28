@@ -31,6 +31,8 @@ import SendRoundedIcon from '@mui/icons-material/SendRounded';
 import CallReceivedRoundedIcon from '@mui/icons-material/CallReceivedRounded';
 import VisibilityRoundedIcon from '@mui/icons-material/VisibilityRounded';
 import SearchIcon from '@mui/icons-material/Search';
+import CloseIcon from '@mui/icons-material/Close';
+import DeleteIcon from '@mui/icons-material/Delete';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 
@@ -81,7 +83,7 @@ export default function PurchaseOrders() {
   
   // Dialogs
   const [modal, setModal] = useState(false);
-  const [form, setForm] = useState({ supplierId: '', lines: [{ itemId: '', quantity: 1, unitPrice: 0 }], notes: '' });
+  const [form, setForm] = useState({ supplierId: '', expectedDate: '', lines: [{ itemId: '', quantity: 1, unitPrice: 0 }], notes: '' });
   const [receiveModal, setReceiveModal] = useState<PO | null>(null);
   const [receiveLines, setReceiveLines] = useState<Record<string, number>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -134,12 +136,13 @@ export default function PurchaseOrders() {
     try {
       const payload = {
         supplierId: form.supplierId,
+        expectedDate: form.expectedDate || undefined,
         lines: validLines,
         notes: form.notes || undefined,
       };
       await api.post('/purchase-orders', payload);
       setModal(false);
-      setForm({ supplierId: '', lines: [{ itemId: '', quantity: 1, unitPrice: 0 }], notes: '' });
+      setForm({ supplierId: '', expectedDate: '', lines: [{ itemId: '', quantity: 1, unitPrice: 0 }], notes: '' });
       setCreateError(null);
       load();
     } catch (error: any) {
@@ -526,51 +529,174 @@ export default function PurchaseOrders() {
             </DialogActions>
           </>
         )}
-      </Dialog>
+      </Dialog>      {/* Create PO Dialog */}
+      <Dialog open={modal} onClose={() => { if (!submitting) { setModal(false); setCreateError(null); } }} maxWidth="md" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          Create New Order
+          <IconButton onClick={() => { if (!submitting) { setModal(false); setCreateError(null); } }} disabled={submitting}>
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ pt: 1 }}>
+          {createError && (
+            <Typography color="error" variant="body2" sx={{ bgcolor: '#fee', p: 1.5, borderRadius: 1.5, mb: 2 }}>
+              {createError}
+            </Typography>
+          )}
+          
+          {/* Order Type and Expected Date */}
+          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, mb: 3 }}>
+            <Box>
+              <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>Order Type *</Typography>
+              <FormControl fullWidth size="small">
+                <Select value="purchase" disabled>
+                  <MenuItem value="purchase">Purchase Order (Restock)</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
+            <Box>
+              <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>Expected Delivery/Fulfillment Date</Typography>
+              <TextField
+                type="date"
+                size="small"
+                fullWidth
+                value={form.expectedDate}
+                onChange={(e) => setForm((f) => ({ ...f, expectedDate: e.target.value }))}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Box>
+          </Box>
 
-      {/* Create PO Dialog */}
-      <Dialog open={modal} onClose={() => { if (!submitting) { setModal(false); setCreateError(null); } }} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700 }}>Create Purchase Order</DialogTitle>
-        <DialogContent>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 1 }}>
-            {createError && (
-              <Typography color="error" variant="body2" sx={{ bgcolor: '#fee', p: 1, borderRadius: 1 }}>
-                {createError}
-              </Typography>
-            )}
-            <FormControl fullWidth>
-              <InputLabel>Supplier</InputLabel>
-              <Select value={form.supplierId} label="Supplier" onChange={(e) => { setForm((f) => ({ ...f, supplierId: e.target.value })); setCreateError(null); }}>
-                <MenuItem value="">Select supplier</MenuItem>
+          {/* Supplier */}
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>Supplier *</Typography>
+            <FormControl fullWidth size="small">
+              <Select
+                value={form.supplierId}
+                onChange={(e) => { setForm((f) => ({ ...f, supplierId: e.target.value })); setCreateError(null); }}
+                displayEmpty
+              >
+                <MenuItem value="" disabled>Select Supplier</MenuItem>
                 {suppliers.map((s) => <MenuItem key={s.id} value={s.id}>{s.name}</MenuItem>)}
               </Select>
             </FormControl>
-            <Typography variant="subtitle2" fontWeight={600}>Line Items</Typography>
-            {form.lines.map((line, idx) => (
-              <Box key={idx} sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
-                <Select
-                  size="small"
-                  value={line.itemId}
-                  onChange={(e) => setForm((f) => ({ ...f, lines: f.lines.map((l, i) => i === idx ? { ...l, itemId: e.target.value } : l) }))}
-                  displayEmpty
-                  sx={{ minWidth: 220, flex: 2 }}
-                >
-                  <MenuItem value="">Select item</MenuItem>
-                  {items.map((i) => <MenuItem key={i.id} value={i.id}>{i.sku} – {i.name}</MenuItem>)}
-                </Select>
-                <TextField type="number" size="small" label="Qty" value={line.quantity} onChange={(e) => setForm((f) => ({ ...f, lines: f.lines.map((l, i) => i === idx ? { ...l, quantity: Number(e.target.value) } : l) }))} inputProps={{ min: 1 }} sx={{ width: 80 }} />
-                <TextField type="number" size="small" label="Price" value={line.unitPrice || ''} onChange={(e) => setForm((f) => ({ ...f, lines: f.lines.map((l, i) => i === idx ? { ...l, unitPrice: Number(e.target.value) } : l) }))} inputProps={{ min: 0, step: 0.01 }} sx={{ width: 100 }} />
-              </Box>
-            ))}
-            <Button size="small" onClick={addLine} sx={{ alignSelf: 'flex-start' }}>+ Add line</Button>
-            <TextField label="Notes" value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} multiline rows={2} fullWidth />
+          </Box>
+
+          {/* Requisition Items Header */}
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography variant="subtitle2" fontWeight={700}>ORDER ITEMS</Typography>
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<AddRoundedIcon />}
+              onClick={addLine}
+              sx={{ textTransform: 'none', borderRadius: 2, borderColor: 'divider', color: 'text.primary' }}
+            >
+              Add Item
+            </Button>
+          </Box>
+
+          {/* Items Table */}
+          <TableContainer component={Paper} variant="outlined" sx={{ mb: 3, borderRadius: 2, overflow: 'hidden' }}>
+            <Table size="small">
+              <TableHead sx={{ bgcolor: 'action.hover' }}>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 600, color: 'text.secondary', py: 1.5 }}>PRODUCT *</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 600, color: 'text.secondary', py: 1.5 }}>Qty *</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 600, color: 'text.secondary', py: 1.5 }}>Price ($) *</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 600, color: 'text.secondary', py: 1.5 }}>TOTAL</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 600, color: 'text.secondary', py: 1.5 }}></TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {form.lines.map((line, idx) => {
+                  const subtotal = line.quantity * (line.unitPrice || 0);
+
+                  return (
+                    <TableRow key={idx}>
+                      <TableCell sx={{ py: 1, minWidth: 200 }}>
+                        <Select
+                          size="small"
+                          fullWidth
+                          value={line.itemId}
+                          onChange={(e) => setForm((f) => ({ ...f, lines: f.lines.map((l, i) => i === idx ? { ...l, itemId: e.target.value } : l) }))}
+                          displayEmpty
+                        >
+                          <MenuItem value="" disabled>Select Product</MenuItem>
+                          {items.map((i) => (
+                            <MenuItem key={i.id} value={i.id}>
+                              {i.name} ({i.sku})
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </TableCell>
+                      <TableCell align="center" sx={{ py: 1 }}>
+                        <TextField
+                          type="number"
+                          size="small"
+                          value={line.quantity}
+                          onChange={(e) => setForm((f) => ({ ...f, lines: f.lines.map((l, i) => i === idx ? { ...l, quantity: Math.max(1, parseInt(e.target.value, 10) || 1) } : l) }))}
+                          inputProps={{ min: 1, style: { textAlign: 'center' } }}
+                          sx={{ width: 80 }}
+                        />
+                      </TableCell>
+                      <TableCell align="right" sx={{ py: 1 }}>
+                        <TextField
+                          type="number"
+                          size="small"
+                          value={line.unitPrice || 0}
+                          onChange={(e) => setForm((f) => ({ ...f, lines: f.lines.map((l, i) => i === idx ? { ...l, unitPrice: Math.max(0, parseFloat(e.target.value) || 0) } : l) }))}
+                          inputProps={{ min: 0, step: 0.01, style: { textAlign: 'right' } }}
+                          sx={{ width: 90 }}
+                        />
+                      </TableCell>
+                      <TableCell align="right" sx={{ py: 1, fontWeight: 600 }}>
+                        ETB {subtotal.toFixed(2)}
+                      </TableCell>
+                      <TableCell align="center" sx={{ py: 1 }}>
+                        <IconButton
+                          color="error"
+                          disabled={form.lines.length === 1}
+                          onClick={() => setForm((f) => ({ ...f, lines: f.lines.filter((_, i) => i !== idx) }))}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </TableContainer>
+
+          {/* Notes */}
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>Notes / Instructions</Typography>
+            <TextField
+              fullWidth
+              multiline
+              rows={3}
+              placeholder="Special notes or logistics instructions..."
+              value={form.notes}
+              onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+              size="small"
+            />
           </Box>
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => { setModal(false); setCreateError(null); }} disabled={submitting} sx={{ color: 'text.secondary' }}>Cancel</Button>
-          <Button variant="contained" onClick={createPo} disabled={submitting}>
-            {submitting ? <CircularProgress size={20} sx={{ mr: 1 }} /> : null}
-            Create
+        <DialogActions sx={{ px: 3, pb: 3, pt: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Box sx={{ textAlign: 'left' }}>
+            <Typography variant="caption" color="text.secondary" fontWeight={600}>Total Amount Due</Typography>
+            <Typography variant="h6" fontWeight={800} color="primary.main">
+              ETB {form.lines.reduce((sum, l) => sum + l.quantity * (l.unitPrice || 0), 0).toFixed(2)}
+            </Typography>
+          </Box>
+          <Button
+            variant="contained"
+            onClick={createPo}
+            disabled={submitting}
+            sx={{ px: 4, py: 1, borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
+          >
+            {submitting ? 'Submitting...' : 'Submit Order'}
           </Button>
         </DialogActions>
       </Dialog>
