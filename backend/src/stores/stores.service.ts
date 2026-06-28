@@ -16,7 +16,22 @@ export class StoresService {
     private userModel: Model<UserDocument>,
   ) {}
 
-  async create(createStoreDto: CreateStoreDto, tenantId: string): Promise<StoreDocument> {
+  private toStore(doc: any) {
+    if (!doc) return null;
+    const o = doc.toObject ? doc.toObject() : doc;
+    const id = (o._id || doc._id)?.toString();
+    return {
+      id,
+      _id: id,
+      tenantId: o.tenantId?.toString(),
+      name: o.name,
+      location: o.location,
+      isActive: o.isActive,
+      createdAt: o.createdAt,
+    };
+  }
+
+  async create(createStoreDto: CreateStoreDto, tenantId: string): Promise<any> {
     const tid = toObjectId(tenantId);
     if (!tid) throw new BadRequestException('Invalid Tenant ID');
 
@@ -32,31 +47,34 @@ export class StoresService {
       ...createStoreDto,
       tenantId: tid,
     });
-    return createdStore.save();
+    const saved = await createdStore.save();
+    return this.toStore(saved);
   }
 
-  async findAll(tenantId: string): Promise<StoreDocument[]> {
+  async findAll(tenantId: string): Promise<any[]> {
     const tid = toObjectId(tenantId);
     if (!tid) return [];
-    return this.storeModel.find({ tenantId: tid }).sort({ name: 1 }).exec();
+    const docs = await this.storeModel.find({ tenantId: tid }).sort({ name: 1 }).exec();
+    return docs.map((d) => this.toStore(d));
   }
 
-  async findOne(id: string, tenantId: string): Promise<StoreDocument> {
+  async findOne(id: string, tenantId: string): Promise<any> {
     const tid = toObjectId(tenantId);
     const sid = toObjectId(id);
     if (!tid || !sid) throw new BadRequestException('Invalid ID format');
 
     const store = await this.storeModel.findOne({ _id: sid, tenantId: tid }).exec();
     if (!store) throw new NotFoundException('Store not found');
-    return store;
+    return this.toStore(store);
   }
 
-  async update(id: string, updateStoreDto: UpdateStoreDto, tenantId: string): Promise<StoreDocument> {
+  async update(id: string, updateStoreDto: UpdateStoreDto, tenantId: string): Promise<any> {
     const tid = toObjectId(tenantId);
     const sid = toObjectId(id);
     if (!tid || !sid) throw new BadRequestException('Invalid ID format');
 
-    const store = await this.findOne(id, tenantId);
+    const store = await this.storeModel.findOne({ _id: sid, tenantId: tid }).exec();
+    if (!store) throw new NotFoundException('Store not found');
 
     if (updateStoreDto.name !== undefined && updateStoreDto.name !== store.name) {
       const existing = await this.storeModel.findOne({
@@ -72,7 +90,8 @@ export class StoresService {
     if (updateStoreDto.location !== undefined) store.location = updateStoreDto.location;
     if (updateStoreDto.isActive !== undefined) store.isActive = updateStoreDto.isActive;
 
-    return store.save();
+    const saved = await store.save();
+    return this.toStore(saved);
   }
 
   async remove(id: string, tenantId: string): Promise<any> {
