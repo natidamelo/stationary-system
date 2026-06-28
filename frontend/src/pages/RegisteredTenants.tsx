@@ -659,6 +659,12 @@ export default function RegisteredTenants() {
               onChange={(e) => setResetPasswordVal(e.target.value)}
               margin="dense"
               disabled={!!resetSuccess}
+              slotProps={{
+                htmlInput: {
+                  autoComplete: 'new-password',
+                  name: 'new-password'
+                }
+              }}
             />
           </DialogContent>
           <DialogActions sx={{ px: 3, pb: 2 }}>
