@@ -11,6 +11,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  Paper,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -18,17 +19,19 @@ import {
   CircularProgress,
   IconButton,
   Tooltip,
-  MenuItem,
   Autocomplete,
   Chip,
   Alert,
-  Paper,
+  InputAdornment,
 } from '@mui/material';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 import DeleteRoundedIcon from '@mui/icons-material/DeleteRounded';
 import RemoveRedEyeRoundedIcon from '@mui/icons-material/RemoveRedEyeRounded';
 import CompareArrowsRoundedIcon from '@mui/icons-material/CompareArrowsRounded';
+import CloseIcon from '@mui/icons-material/Close';
+import SearchIcon from '@mui/icons-material/Search';
+import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 
@@ -42,9 +45,9 @@ type StoreTransfer = {
   id: string;
   transferNumber: string;
   fromStoreId: string;
-  fromStore?: { name: string };
+  fromStore?: { name: string; location?: string };
   toStoreId: string;
-  toStore?: { name: string };
+  toStore?: { name: string; location?: string };
   status: 'pending' | 'completed';
   notes?: string;
   lines: TransferLine[];
@@ -62,6 +65,7 @@ export default function StoreTransfers() {
   const [modal, setModal] = useState(false);
   const [viewModal, setViewModal] = useState(false);
   const [selectedTransfer, setSelectedTransfer] = useState<StoreTransfer | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const [fromStoreId, setFromStoreId] = useState('');
   const [toStoreId, setToStoreId] = useState('');
@@ -161,6 +165,16 @@ export default function StoreTransfers() {
     setViewModal(true);
   };
 
+  const filteredTransfers = transfers.filter((t) => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      t.transferNumber.toLowerCase().includes(q) ||
+      (t.fromStore?.name || '').toLowerCase().includes(q) ||
+      (t.toStore?.name || '').toLowerCase().includes(q)
+    );
+  });
+
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 8 }}>
@@ -171,34 +185,66 @@ export default function StoreTransfers() {
 
   return (
     <Box sx={{ animation: 'fadeIn 0.3s ease-out', '@keyframes fadeIn': { from: { opacity: 0 }, to: { opacity: 1 } } }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1, mb: 3 }}>
+      {/* Header */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
         <Box>
           <Typography variant="h5" fontWeight={700} sx={{ letterSpacing: '-0.01em' }}>Store Transfers</Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
-            Transfer inventory stock between store locations
+            Transfer inventory stock between store locations and view transfer history.
           </Typography>
         </Box>
-        <Button variant="contained" startIcon={<AddRoundedIcon />} onClick={openAdd}>
-          New Transfer
+        <Button
+          variant="contained"
+          startIcon={<AddRoundedIcon />}
+          onClick={openAdd}
+          sx={{
+            background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+            textTransform: 'none',
+            fontWeight: 600,
+            borderRadius: 2,
+            px: 3,
+            py: 1,
+            '&:hover': { background: 'linear-gradient(135deg, #4338ca, #6d28d9)' },
+          }}
+        >
+          New Store Transfer
         </Button>
       </Box>
 
-      <Card>
+      {/* Search Bar */}
+      <TextField
+        fullWidth
+        size="small"
+        placeholder="Search transfer records by number, store name, code."
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start">
+              <SearchIcon sx={{ color: 'text.disabled', fontSize: 20 }} />
+            </InputAdornment>
+          ),
+        }}
+        sx={{ mb: 3, '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: 'background.paper' } }}
+      />
+
+      {/* Transfers Table */}
+      <Card sx={{ borderRadius: 2, overflow: 'hidden' }}>
         <TableContainer>
           <Table>
             <TableHead>
-              <TableRow>
-                <TableCell>Transfer #</TableCell>
-                <TableCell>From Store</TableCell>
-                <TableCell>To Store</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Requested By</TableCell>
+              <TableRow sx={{ '& th': { fontWeight: 700, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.secondary' } }}>
+                <TableCell>Transfer Number</TableCell>
+                <TableCell>Source Store</TableCell>
+                <TableCell>Destination Store</TableCell>
+                <TableCell>Items Count</TableCell>
+                <TableCell>Transferred By</TableCell>
                 <TableCell>Date</TableCell>
-                <TableCell align="right">Actions</TableCell>
+                <TableCell align="center">Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {transfers.length === 0 ? (
+              {filteredTransfers.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
                     <CompareArrowsRoundedIcon sx={{ fontSize: 40, color: 'text.disabled', mb: 1, opacity: 0.5 }} />
@@ -206,36 +252,42 @@ export default function StoreTransfers() {
                   </TableCell>
                 </TableRow>
               ) : (
-                transfers.map((t) => (
-                  <TableRow key={t.id}>
+                filteredTransfers.map((t) => (
+                  <TableRow key={t.id} hover sx={{ '&:hover': { bgcolor: 'action.hover' } }}>
                     <TableCell sx={{ fontWeight: 600 }}>{t.transferNumber}</TableCell>
-                    <TableCell>{t.fromStore?.name || '-'}</TableCell>
-                    <TableCell>{t.toStore?.name || '-'}</TableCell>
                     <TableCell>
-                      <Chip
-                        label={t.status.toUpperCase()}
-                        size="small"
-                        color={t.status === 'completed' ? 'success' : 'warning'}
-                        sx={{ fontWeight: 700, fontSize: '0.65rem' }}
-                      />
-                    </TableCell>
-                    <TableCell>{t.createdBy?.fullName || '-'}</TableCell>
-                    <TableCell>{new Date(t.createdAt).toLocaleDateString()}</TableCell>
-                    <TableCell align="right">
-                      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-                        <Tooltip title="View Details">
-                          <IconButton size="small" onClick={() => openView(t)} color="primary">
-                            <RemoveRedEyeRoundedIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        {t.status === 'pending' && ['admin', 'manager'].includes(user?.role || '') && (
-                          <Tooltip title="Approve & Complete">
-                            <IconButton size="small" onClick={() => completeTransfer(t.id)} color="success">
-                              <CheckCircleRoundedIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography variant="body2" fontWeight={500}>{t.fromStore?.name || '-'}</Typography>
+                        {t.fromStore?.location && (
+                          <Chip label={t.fromStore.location} size="small" sx={{ fontWeight: 600, fontSize: '0.65rem', bgcolor: '#e0e7ff', color: '#4f46e5' }} />
                         )}
                       </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography variant="body2" fontWeight={500}>{t.toStore?.name || '-'}</Typography>
+                        {t.toStore?.location && (
+                          <Chip label={t.toStore.location} size="small" sx={{ fontWeight: 600, fontSize: '0.65rem', bgcolor: '#fce7f3', color: '#db2777' }} />
+                        )}
+                      </Box>
+                    </TableCell>
+                    <TableCell>{t.lines.length} products</TableCell>
+                    <TableCell>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        👤 {t.createdBy?.fullName || 'System'}
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        📅 {new Date(t.createdAt).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })}
+                      </Box>
+                    </TableCell>
+                    <TableCell align="center">
+                      <Tooltip title="View Details">
+                        <IconButton size="small" onClick={() => openView(t)}>
+                          <RemoveRedEyeRoundedIcon fontSize="small" sx={{ color: 'text.secondary' }} />
+                        </IconButton>
+                      </Tooltip>
                     </TableCell>
                   </TableRow>
                 ))
@@ -245,155 +297,274 @@ export default function StoreTransfers() {
         </TableContainer>
       </Card>
 
-      {/* Add Transfer Dialog */}
-      <Dialog open={modal} onClose={() => setModal(false)} maxWidth="md" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700 }}>New Stock Transfer</DialogTitle>
-        <DialogContent sx={{ pt: 1 }}>
+      {/* New Store Transfer Dialog */}
+      <Dialog
+        open={modal}
+        onClose={() => setModal(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 3 } }}
+      >
+        <DialogTitle sx={{ fontWeight: 700, display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}>
+          New Store Transfer
+          <IconButton size="small" onClick={() => setModal(false)}>
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ pt: 2 }}>
           {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, mt: 1, mb: 3 }}>
-            <TextField
-              select
-              label="From Store (Source)"
-              fullWidth
-              value={fromStoreId}
-              onChange={(e) => setFromStoreId(e.target.value)}
-            >
-              {stores.map((s) => (
-                <MenuItem key={s.id} value={s.id} disabled={!s.isActive}>
-                  {s.name}
-                </MenuItem>
-              ))}
-            </TextField>
-            <TextField
-              select
-              label="To Store (Destination)"
-              fullWidth
-              value={toStoreId}
-              onChange={(e) => setToStoreId(e.target.value)}
-            >
-              {stores.map((s) => (
-                <MenuItem key={s.id} value={s.id} disabled={!s.isActive}>
-                  {s.name}
-                </MenuItem>
-              ))}
-            </TextField>
+
+          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, mb: 3 }}>
+            <Box>
+              <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>
+                Source Store <span style={{ color: '#ef4444' }}>*</span>
+              </Typography>
+              <TextField
+                select
+                fullWidth
+                size="small"
+                value={fromStoreId}
+                onChange={(e) => setFromStoreId(e.target.value)}
+                SelectProps={{ native: true }}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+              >
+                <option value="">Select Source Store..</option>
+                {stores.map((s) => (
+                  <option key={s.id} value={s.id} disabled={!s.isActive}>
+                    {s.name}{s.location ? ` — ${s.location}` : ''}
+                  </option>
+                ))}
+              </TextField>
+            </Box>
+            <Box>
+              <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>
+                Destination Store <span style={{ color: '#ef4444' }}>*</span>
+              </Typography>
+              <TextField
+                select
+                fullWidth
+                size="small"
+                value={toStoreId}
+                onChange={(e) => setToStoreId(e.target.value)}
+                SelectProps={{ native: true }}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+              >
+                <option value="">Select Destination Store..</option>
+                {stores.map((s) => (
+                  <option key={s.id} value={s.id} disabled={!s.isActive}>
+                    {s.name}{s.location ? ` — ${s.location}` : ''}
+                  </option>
+                ))}
+              </TextField>
+            </Box>
           </Box>
 
+          {/* Notes */}
+          <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>Notes / Reason for Transfer</Typography>
           <TextField
-            label="Notes"
             fullWidth
-            margin="normal"
+            multiline
+            rows={2}
+            size="small"
+            placeholder="Specify the reason or additional details about this transfer.."
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            sx={{ mb: 3 }}
+            sx={{ mb: 3, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
           />
 
-          <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>Transfer Items</Typography>
-          {lines.map((line, index) => (
-            <Box key={index} sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2 }}>
-              <Autocomplete
-                options={items}
-                getOptionLabel={(option) => `${option.name} (${option.sku})`}
-                renderInput={(params) => <TextField {...params} label="Select Product" required size="small" />}
-                sx={{ flex: 1 }}
-                value={items.find((i) => i.id === line.itemId) || null}
-                onChange={(_, newValue) => handleLineChange(index, 'itemId', newValue?.id || '')}
-              />
-              <TextField
-                label="Qty"
-                type="number"
-                required
-                size="small"
-                sx={{ width: 100 }}
-                value={line.quantity}
-                onChange={(e) => handleLineChange(index, 'quantity', parseInt(e.target.value, 10) || 1)}
-              />
-              <IconButton color="error" disabled={lines.length === 1} onClick={() => handleRemoveLine(index)}>
-                <DeleteRoundedIcon />
-              </IconButton>
+          {/* Transfer Items */}
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+            <Typography variant="subtitle2" fontWeight={700} sx={{ textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em' }}>
+              Transfer Items <span style={{ color: '#ef4444' }}>*</span>
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Button size="small" startIcon={<QrCodeScannerIcon />} sx={{ textTransform: 'none', fontSize: '0.8rem' }}>
+                Scan Item
+              </Button>
+              <Button size="small" startIcon={<AddRoundedIcon />} onClick={handleAddLine} sx={{ textTransform: 'none', fontSize: '0.8rem' }}>
+                Add Line
+              </Button>
             </Box>
-          ))}
-          <Button startIcon={<AddRoundedIcon />} onClick={handleAddLine} sx={{ mt: 1 }}>Add Product</Button>
+          </Box>
+
+          <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
+            <Table size="small">
+              <TableHead>
+                <TableRow sx={{ '& th': { fontWeight: 700, fontSize: '0.7rem', textTransform: 'uppercase', color: 'text.secondary' } }}>
+                  <TableCell>Product</TableCell>
+                  <TableCell align="right" sx={{ width: 100 }}>Transfer Qty</TableCell>
+                  <TableCell align="center" sx={{ width: 60 }}>Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {lines.map((line, index) => (
+                  <TableRow key={index}>
+                    <TableCell>
+                      <Autocomplete
+                        options={items}
+                        getOptionLabel={(option) => `${option.name} (${option.sku})`}
+                        renderInput={(params) => <TextField {...params} placeholder="Select Product.." size="small" />}
+                        value={items.find((i) => i.id === line.itemId) || null}
+                        onChange={(_, newValue) => handleLineChange(index, 'itemId', newValue?.id || '')}
+                        size="small"
+                        sx={{ minWidth: 200 }}
+                      />
+                    </TableCell>
+                    <TableCell align="right">
+                      <TextField
+                        type="number"
+                        size="small"
+                        value={line.quantity}
+                        onChange={(e) => handleLineChange(index, 'quantity', parseInt(e.target.value, 10) || 1)}
+                        inputProps={{ min: 1 }}
+                        sx={{ width: 80 }}
+                      />
+                    </TableCell>
+                    <TableCell align="center">
+                      <IconButton
+                        size="small"
+                        color="error"
+                        disabled={lines.length === 1}
+                        onClick={() => handleRemoveLine(index)}
+                      >
+                        <DeleteRoundedIcon fontSize="small" />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
         </DialogContent>
-        <DialogActions sx={{ p: 3 }}>
-          <Button onClick={() => setModal(false)}>Cancel</Button>
-          <Button onClick={saveTransfer} variant="contained" disabled={submitting}>
-            Create Transfer Request
+        <DialogActions sx={{ p: 3, pt: 2 }}>
+          <Button
+            onClick={saveTransfer}
+            variant="contained"
+            disabled={submitting}
+            startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : undefined}
+            sx={{
+              background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+              textTransform: 'none',
+              fontWeight: 600,
+              borderRadius: 2,
+              px: 3,
+              '&:hover': { background: 'linear-gradient(135deg, #4338ca, #6d28d9)' },
+              '&.Mui-disabled': { background: '#e5e7eb', color: '#9ca3af' },
+            }}
+          >
+            Complete Store Transfer
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* View Transfer Details Dialog */}
-      <Dialog open={viewModal} onClose={() => setViewModal(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700 }}>Transfer Details: {selectedTransfer?.transferNumber}</DialogTitle>
-        <DialogContent sx={{ pt: 1.5 }}>
-          {selectedTransfer && (
-            <>
-              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, mb: 2 }}>
+      <Dialog
+        open={viewModal}
+        onClose={() => setViewModal(false)}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 3 } }}
+      >
+        {selectedTransfer && (
+          <>
+            <DialogTitle sx={{ fontWeight: 700, display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}>
+              Transfer Details — {selectedTransfer.transferNumber}
+              <IconButton size="small" onClick={() => setViewModal(false)}>
+                <CloseIcon fontSize="small" />
+              </IconButton>
+            </DialogTitle>
+            <DialogContent sx={{ pt: 2 }}>
+              <Box sx={{ display: 'flex', gap: 4, mb: 3, flexWrap: 'wrap' }}>
                 <Box>
-                  <Typography variant="caption" color="text.secondary">From Store</Typography>
-                  <Typography variant="body1" fontWeight={600}>{selectedTransfer.fromStore?.name}</Typography>
+                  <Typography variant="caption" color="text.secondary">Source Store</Typography>
+                  <Typography variant="body2" fontWeight={600}>{selectedTransfer.fromStore?.name || '-'}</Typography>
                 </Box>
                 <Box>
-                  <Typography variant="caption" color="text.secondary">To Store</Typography>
-                  <Typography variant="body1" fontWeight={600}>{selectedTransfer.toStore?.name}</Typography>
+                  <Typography variant="caption" color="text.secondary">Destination Store</Typography>
+                  <Typography variant="body2" fontWeight={600}>{selectedTransfer.toStore?.name || '-'}</Typography>
                 </Box>
                 <Box>
                   <Typography variant="caption" color="text.secondary">Status</Typography>
                   <Box>
                     <Chip
-                      label={selectedTransfer.status.toUpperCase()}
+                      label={selectedTransfer.status === 'completed' ? 'Completed' : 'Pending'}
                       size="small"
-                      color={selectedTransfer.status === 'completed' ? 'success' : 'warning'}
-                      sx={{ fontWeight: 700, fontSize: '0.65rem' }}
+                      sx={{
+                        fontWeight: 600,
+                        fontSize: '0.7rem',
+                        mt: 0.25,
+                        bgcolor: selectedTransfer.status === 'completed' ? '#dcfce7' : '#fef9c3',
+                        color: selectedTransfer.status === 'completed' ? '#16a34a' : '#ca8a04',
+                      }}
                     />
                   </Box>
                 </Box>
                 <Box>
-                  <Typography variant="caption" color="text.secondary">Date Created</Typography>
-                  <Typography variant="body2">{new Date(selectedTransfer.createdAt).toLocaleString()}</Typography>
+                  <Typography variant="caption" color="text.secondary">Transferred By</Typography>
+                  <Typography variant="body2" fontWeight={600}>{selectedTransfer.createdBy?.fullName || 'System'}</Typography>
+                </Box>
+                <Box>
+                  <Typography variant="caption" color="text.secondary">Date</Typography>
+                  <Typography variant="body2" fontWeight={600}>
+                    {new Date(selectedTransfer.createdAt).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })}
+                  </Typography>
                 </Box>
               </Box>
 
               {selectedTransfer.notes && (
                 <Box sx={{ mb: 3 }}>
                   <Typography variant="caption" color="text.secondary">Notes</Typography>
-                  <Typography variant="body2" sx={{ bgcolor: 'action.hover', p: 1.5, borderRadius: 1 }}>
+                  <Typography variant="body2" sx={{ bgcolor: '#f8fafc', p: 1.5, borderRadius: 1.5, border: '1px solid', borderColor: 'divider', mt: 0.5 }}>
                     {selectedTransfer.notes}
                   </Typography>
                 </Box>
               )}
 
-              <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>Items List</Typography>
-              <TableContainer component={Paper} outlined elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
+              <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
                 <Table size="small">
                   <TableHead>
-                    <TableRow>
+                    <TableRow sx={{ '& th': { fontWeight: 700, fontSize: '0.7rem', textTransform: 'uppercase', color: 'text.secondary' } }}>
                       <TableCell>Item Name</TableCell>
-                      <TableCell align="right">Qty</TableCell>
+                      <TableCell>SKU</TableCell>
+                      <TableCell align="right">Qty Transferred</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {selectedTransfer.lines.map((l, index) => (
                       <TableRow key={index}>
                         <TableCell sx={{ fontWeight: 500 }}>{l.item?.name || 'Unknown Item'}</TableCell>
-                        <TableCell align="right" sx={{ fontWeight: 600 }}>{l.quantity}</TableCell>
+                        <TableCell>{l.item?.sku || '-'}</TableCell>
+                        <TableCell align="right">
+                          <Chip
+                            label={l.quantity}
+                            size="small"
+                            sx={{ fontWeight: 600, fontSize: '0.75rem', bgcolor: '#dcfce7', color: '#16a34a' }}
+                          />
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
               </TableContainer>
-            </>
-          )}
-        </DialogContent>
-        <DialogActions sx={{ p: 3 }}>
-          <Button onClick={() => setViewModal(false)}>Close</Button>
-          {selectedTransfer?.status === 'pending' && ['admin', 'manager'].includes(user?.role || '') && (
-            <Button onClick={() => completeTransfer(selectedTransfer.id)} variant="contained" color="success">
-              Approve & Complete
-            </Button>
-          )}
-        </DialogActions>
+            </DialogContent>
+            <DialogActions sx={{ p: 3, pt: 1 }}>
+              <Button onClick={() => setViewModal(false)} variant="outlined" sx={{ textTransform: 'none', borderRadius: 2 }}>
+                Close
+              </Button>
+              {selectedTransfer.status === 'pending' && ['admin', 'manager'].includes(user?.role || '') && (
+                <Button
+                  onClick={() => completeTransfer(selectedTransfer.id)}
+                  variant="contained"
+                  color="success"
+                  startIcon={<CheckCircleRoundedIcon />}
+                  sx={{ textTransform: 'none', borderRadius: 2 }}
+                >
+                  Approve & Complete
+                </Button>
+              )}
+            </DialogActions>
+          </>
+        )}
       </Dialog>
     </Box>
   );
