@@ -36,6 +36,15 @@ export class ItemDocument extends Document {
 
   @Prop({ default: true })
   isActive: boolean;
+
+  @Prop({ default: 100 })
+  maxStockLevel: number;
+
+  @Prop({ default: '' })
+  description: string;
+
+  @Prop({ type: [String], default: [] })
+  tags: string[];
 }
 
 export const ItemSchema = SchemaFactory.createForClass(ItemDocument);

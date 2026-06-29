@@ -48,7 +48,6 @@ import CallMadeRoundedIcon from '@mui/icons-material/CallMadeRounded';
 import ForumRoundedIcon from '@mui/icons-material/ForumRounded';
 import CategoryRoundedIcon from '@mui/icons-material/CategoryRounded';
 import StarRoundedIcon from '@mui/icons-material/StarRounded';
-import WarehouseRoundedIcon from '@mui/icons-material/WarehouseRounded';
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
@@ -161,7 +160,6 @@ export default function Layout() {
     { to: '/goods-receiving', label: 'Goods Receiving', icon: <InboxRoundedIcon fontSize="small" /> },
     { to: '/item-issues', label: 'Item Issues', icon: <CallMadeRoundedIcon fontSize="small" /> },
     { to: '/store-transfers', label: 'Store Transfers', icon: <SwapHorizRoundedIcon fontSize="small" /> },
-    ...(role === 'admin' || role === 'manager' || role === 'inventory_clerk' || role === 'dealer' ? [{ to: '/stock-management', label: 'Stock Management', icon: <WarehouseRoundedIcon fontSize="small" /> }] : []),
     ...(role === 'reception' || role === 'admin' || role === 'manager' || role === 'dealer' ? [{ to: '/reception', label: 'Sales', icon: <PointOfSaleRoundedIcon fontSize="small" /> }] : []),
   ];
 

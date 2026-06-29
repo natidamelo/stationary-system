@@ -5,12 +5,15 @@ import { ItemDocument } from '../schemas/item.schema';
 import { CreateItemDto } from './dto/create-item.dto';
 import { UpdateItemDto } from './dto/update-item.dto';
 import { toObjectId } from '../common/utils';
+import { InventoryService } from '../inventory/inventory.service';
+import { StockMovementType } from '../common/enums';
 
 @Injectable()
 export class ItemsService {
   constructor(
     @InjectModel(ItemDocument.name)
     private model: Model<ItemDocument>,
+    private inventory: InventoryService,
   ) { }
 
   private toItem(doc: any) {
@@ -46,21 +49,77 @@ export class ItemsService {
       imageUrl: o.imageUrl,
       barcode: o.barcode || o.sku,
       isActive: o.isActive !== false, // default true
+      maxStockLevel: o.maxStockLevel ?? 100,
+      description: o.description ?? '',
+      tags: o.tags ?? [],
     };
   }
 
-  async create(dto: CreateItemDto, tenantId: string) {
+  async generateNextSku(tenantId: string): Promise<string> {
+    const tid = toObjectId(tenantId);
+    if (!tid) return 'item-00001';
+    
+    // Find tenant name for prefix
+    const tenant = await this.model.db.collection('tenants').findOne({ _id: tid });
+    const name = tenant ? tenant.name : 'item';
+    const prefix = name.toLowerCase().replace(/[^a-z]/g, '').substring(0, 4) || 'item';
+    
+    // Count existing items for this tenant
+    const count = await this.model.countDocuments({ tenantId: tid });
+    const num = count + 1;
+    return `${prefix}-${String(num).padStart(5, '0')}`;
+  }
+
+  async create(dto: CreateItemDto, user: { id: string; tenantId: string; storeId?: string }) {
     try {
+      const tenantId = user.tenantId;
       const tid = toObjectId(tenantId);
       if (!tid) throw new BadRequestException('Tenant ID is required');
       
-      const barcode = dto.barcode || dto.sku;
+      // Auto-generate SKU if not provided
+      let sku = (dto.sku || '').trim();
+      if (!sku) {
+        sku = await this.generateNextSku(tenantId);
+      }
+
+      const barcode = dto.barcode || sku;
+      
+      // Parse tags
+      let cleanTags: string[] = [];
+      if (dto.tags) {
+        if (typeof dto.tags === 'string') {
+          cleanTags = dto.tags.split(',').map((t: string) => t.trim()).filter(Boolean);
+        } else if (Array.isArray(dto.tags)) {
+          cleanTags = dto.tags.map((t: any) => String(t).trim()).filter(Boolean);
+        }
+      }
+
+      // Extract initialStock from dto (don't pass to model.create directly)
+      const { initialStock, ...modelFields } = dto as any;
+
       const created = await this.model.create({
-        ...dto,
+        ...modelFields,
+        sku,
         barcode,
         tenantId: tid,
         categoryId: toObjectId(dto.categoryId) || undefined,
+        tags: cleanTags,
       });
+
+      // Seed initial stock
+      const stockQty = Number(initialStock) || 0;
+      if (stockQty > 0 && user.storeId) {
+        await this.inventory.addMovement(
+          created._id.toString(),
+          StockMovementType.PURCHASE,
+          stockQty,
+          {
+            reference: 'initial_stock',
+            notes: 'Initial stock on product creation',
+            performedBy: user,
+          }
+        );
+      }
       
       return this.toItem(created);
     } catch (error: any) {
@@ -189,6 +248,14 @@ export class ItemsService {
     // Generate barcode from SKU if not provided and doesn't exist
     if (!update.barcode && !existing.barcode) {
       update.barcode = (dto as any).sku || (existing as any).sku;
+    }
+
+    if (dto.tags !== undefined) {
+      if (typeof dto.tags === 'string') {
+        update.tags = dto.tags.split(',').map((t: string) => t.trim()).filter(Boolean);
+      } else if (Array.isArray(dto.tags)) {
+        update.tags = dto.tags.map((t: any) => String(t).trim()).filter(Boolean);
+      }
     }
 
     await this.model.updateOne(

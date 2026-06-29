@@ -57,4 +57,27 @@ export class CreateItemDto {
   @IsOptional()
   @IsString()
   barcode?: string;
+
+  @ApiPropertyOptional({ default: 0 })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Type(() => Number)
+  initialStock?: number;
+
+  @ApiPropertyOptional({ default: 100 })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Type(() => Number)
+  maxStockLevel?: number;
+
+  @ApiPropertyOptional({ default: '' })
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  tags?: any;
 }

@@ -18,19 +18,29 @@ import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { RolesGuard } from '../guards/roles.guard';
 import { Roles } from '../decorators/roles.decorator';
 import { RoleEnum } from '../common/enums';
+import { InventoryService } from '../inventory/inventory.service';
 
 @ApiTags('items')
 @ApiBearerAuth()
 @Controller('api/items')
 @UseGuards(JwtAuthGuard)
 export class ItemsController {
-  constructor(private items: ItemsService) { }
+  constructor(
+    private items: ItemsService,
+    private inventory: InventoryService,
+  ) { }
 
   @Post()
   @UseGuards(RolesGuard)
   @Roles(RoleEnum.ADMIN, RoleEnum.INVENTORY_CLERK, RoleEnum.MANAGER, RoleEnum.DEALER)
   create(@Body() dto: CreateItemDto, @Request() req: any) {
-    return this.items.create(dto, req.user.tenantId);
+    return this.items.create(dto, req.user);
+  }
+
+  @Get('next-sku')
+  async getNextSku(@Request() req: any) {
+    const sku = await this.items.generateNextSku(req.user.tenantId);
+    return { sku };
   }
 
   @Get()
@@ -38,10 +48,31 @@ export class ItemsController {
     @Request() req: any,
     @Query('categoryId') categoryId?: string,
     @Query('search') search?: string,
+    @Query('storeId') queryStoreId?: string,
   ) {
-    const result = await this.items.findAll(req.user.tenantId, { categoryId, search });
-    console.log(`[ItemsController] GET /api/items - found ${result.length} items`);
-    return result;
+    const result = (await this.items.findAll(req.user.tenantId, { categoryId, search })) as any[];
+    const cleanResult = result.filter(Boolean);
+    
+    // Attach stock balances
+    const storeId = queryStoreId === 'all' ? undefined : (queryStoreId || req.user.storeId);
+    if (cleanResult.length > 0) {
+      const itemIds = cleanResult.map(i => i.id);
+      const balances = await this.inventory.getBalancesForItems(
+        itemIds,
+        req.user.tenantId,
+        storeId || undefined,
+      );
+      cleanResult.forEach(i => {
+        i.currentStock = balances[i.id] ?? 0;
+      });
+    } else {
+      cleanResult.forEach(i => {
+        i.currentStock = 0;
+      });
+    }
+
+    console.log(`[ItemsController] GET /api/items - found ${cleanResult.length} items with stock balances`);
+    return cleanResult;
   }
 
   @Get('barcode/:barcode')
