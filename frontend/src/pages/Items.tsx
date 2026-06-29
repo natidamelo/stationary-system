@@ -422,6 +422,13 @@ export default function Items() {
     }
   };
 
+  const handleDoPrint = () => {
+    if (itemToPrint) {
+      printBarcode(itemToPrint, printCount);
+      setPrintDialog(false);
+    }
+  };
+
   const handleImportCsv = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
