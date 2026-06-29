@@ -15,16 +15,16 @@ export class DashboardController {
 
   @Get('summary')
   summary(@CurrentUser() user: UserPayload) {
-    return this.dashboard.getSummary(user.tenantId);
+    return this.dashboard.getSummary(user.tenantId, user.storeId);
   }
 
   @Get('stock-summary')
   stockSummary(@CurrentUser() user: UserPayload) {
-    return this.dashboard.getStockSummary(user.tenantId);
+    return this.dashboard.getStockSummary(user.tenantId, user.storeId);
   }
 
   @Get('sales-chart')
   salesChart(@CurrentUser() user: UserPayload, @Query('period') period: SalesChartPeriod = 'week') {
-    return this.dashboard.getSalesChart(user.tenantId, period);
+    return this.dashboard.getSalesChart(user.tenantId, period, user.storeId);
   }
 }

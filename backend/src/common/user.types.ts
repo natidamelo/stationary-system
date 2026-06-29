@@ -6,4 +6,6 @@ export class UserPayload {
   role?: { id?: string; name: string };
   isActive?: boolean;
   tenantId!: string;
+  storeId?: string;
 }
+

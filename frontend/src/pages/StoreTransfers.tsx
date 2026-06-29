@@ -67,7 +67,7 @@ export default function StoreTransfers() {
   const [selectedTransfer, setSelectedTransfer] = useState<StoreTransfer | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const [fromStoreId, setFromStoreId] = useState('');
+  const [fromStoreId, setFromStoreId] = useState(user?.storeId || '');
   const [toStoreId, setToStoreId] = useState('');
   const [notes, setNotes] = useState('');
   const [lines, setLines] = useState<Array<{ itemId: string; quantity: number }>>([
@@ -92,7 +92,7 @@ export default function StoreTransfers() {
   }, []);
 
   const openAdd = () => {
-    setFromStoreId('');
+    setFromStoreId(user?.storeId || '');
     setToStoreId('');
     setNotes('');
     setLines([{ itemId: '', quantity: 1 }]);

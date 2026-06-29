@@ -79,7 +79,7 @@ export default function Items() {
 
   // Filter States
   const [search, setSearch] = useState('');
-  const [selectedStore, setSelectedStore] = useState('all');
+  const [selectedStore, setSelectedStore] = useState(user?.storeId || 'all');
   const [categoryId, setCategoryId] = useState('all');
   const [selectedSupplier, setSelectedSupplier] = useState('all');
   const [stockStatus, setStockStatus] = useState('all');
@@ -154,6 +154,12 @@ export default function Items() {
   useEffect(() => {
     load().finally(() => setLoading(false));
   }, [selectedStore, categoryId, search]);
+
+  useEffect(() => {
+    if (user?.storeId) {
+      setSelectedStore(user.storeId);
+    }
+  }, [user?.storeId]);
 
   const handleBarcodeScan = async (barcode: string) => {
     if (modal !== null) {
