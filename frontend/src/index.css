@@ -43,11 +43,39 @@
   --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-normal: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Centralized Typography Tokens */
+  --font-sans: 'Inter', 'SF Pro Display', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --font-weight-light: 300;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+
+  --font-size-xs: 0.65rem;
+  --font-size-sm: 0.75rem;
+  --font-size-base: 0.875rem;
+  --font-size-lg: 1.0rem;
+  --font-size-xl: 1.1rem;
+  --font-size-2xl: 1.25rem;
+  --font-size-3xl: 1.5rem;
+  --font-size-4xl: 1.75rem;
+
+  --letter-spacing-display: -0.02em;
+  --letter-spacing-title: -0.01em;
+  --letter-spacing-subtitle: -0.01em;
+  --letter-spacing-body: normal;
+  --letter-spacing-label: 0.06em;
+  --letter-spacing-button: 0.02em;
+  --letter-spacing-caption: 0.01em;
 }
 
 body {
   margin: 0;
-  font-family: 'Inter', 'SF Pro Display', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-family: var(--font-sans);
   background: var(--bg);
   color: var(--text);
   min-height: 100vh;
@@ -100,7 +128,7 @@ input, select, textarea, button {
   background: var(--surface);
   color: var(--text);
   cursor: pointer;
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
   transition: all var(--transition-normal);
 }
 .btn:hover {
@@ -125,7 +153,7 @@ input, select, textarea, button {
   border-color: transparent;
   color: #fff;
 }
-.btn-sm { padding: 0.35rem 0.75rem; font-size: 0.875rem; }
+.btn-sm { padding: 0.35rem 0.75rem; font-size: var(--font-size-base); }
 .btn-ghost {
   background: transparent;
   border-color: transparent;
@@ -142,8 +170,8 @@ input, select, textarea, button {
   display: block;
   margin-bottom: 0.4rem;
   color: var(--text);
-  font-size: 0.875rem;
-  font-weight: 500;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
 }
 .form-group input,
 .form-group select,
@@ -176,10 +204,10 @@ th, td {
 }
 th {
   color: var(--text-soft);
-  font-weight: 600;
-  font-size: 0.75rem;
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-sm);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: var(--letter-spacing-label);
   background: var(--surface-alt);
 }
 tr {
@@ -195,9 +223,9 @@ tr:hover td {
   align-items: center;
   padding: 0.2rem 0.6rem;
   border-radius: 6px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.01em;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-caption);
 }
 .badge-draft { background: #f3f4f6; color: #6b7280; }
 .badge-pending { background: var(--warning-light); color: var(--warning); }
@@ -227,11 +255,11 @@ tr:hover td {
   gap: 1rem;
 }
 .header h1 {
-  font-size: 1.5rem;
-  font-weight: 700;
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
   color: var(--text);
   margin: 0;
-  letter-spacing: -0.01em;
+  letter-spacing: var(--letter-spacing-title);
 }
 
 /* KPI Grid */
@@ -258,9 +286,9 @@ tr:hover td {
   box-shadow: var(--shadow-md);
 }
 .page-kpi-card .kpi-content { flex: 1; min-width: 0; }
-.page-kpi-card .kpi-label { font-size: 0.8125rem; color: var(--text-muted); margin-bottom: 0.25rem; font-weight: 500; }
-.page-kpi-card .kpi-value { font-size: 1.5rem; font-weight: 700; color: var(--text); letter-spacing: -0.02em; }
-.page-kpi-card .kpi-sublabel { font-size: 0.75rem; color: var(--text-soft); margin-top: 0.25rem; }
+.page-kpi-card .kpi-label { font-size: var(--font-size-base); color: var(--text-muted); margin-bottom: 0.25rem; font-weight: var(--font-weight-medium); }
+.page-kpi-card .kpi-value { font-size: var(--font-size-3xl); font-weight: var(--font-weight-bold); color: var(--text); letter-spacing: var(--letter-spacing-display); }
+.page-kpi-card .kpi-sublabel { font-size: var(--font-size-sm); color: var(--text-soft); margin-top: 0.25rem; }
 .page-kpi-icon {
   width: 44px; height: 44px; border-radius: var(--radius-sm);
   display: flex; align-items: center; justify-content: center;

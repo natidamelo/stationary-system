@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { typography } from '../theme/typography';
 import {
   Box,
   Typography,
@@ -171,7 +172,7 @@ export default function ItemIssues() {
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
         <Box>
-          <Typography variant="h5" fontWeight={700} sx={{ letterSpacing: '-0.01em' }}>Item Issues</Typography>
+          <Typography variant="h5" fontWeight={typography.fontWeightBold} sx={{ letterSpacing: typography.pageTitle.letterSpacing }}>Item Issues</Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
             Issue inventory stock to registered store locations and log distribution trails.
           </Typography>
@@ -183,7 +184,7 @@ export default function ItemIssues() {
           sx={{
             background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
             textTransform: 'none',
-            fontWeight: 600,
+            fontWeight: typography.fontWeightSemiBold,
             borderRadius: 2,
             px: 3,
             py: 1,
@@ -216,7 +217,7 @@ export default function ItemIssues() {
         <TableContainer>
           <Table>
             <TableHead>
-              <TableRow sx={{ '& th': { fontWeight: 700, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.secondary' } }}>
+              <TableRow sx={{ '& th': { fontWeight: typography.fontWeightBold, fontSize: typography.fontSizeXs, textTransform: 'uppercase', letterSpacing: typography.label.letterSpacing, color: 'text.secondary' } }}>
                 <TableCell>Issue Number</TableCell>
                 <TableCell>Destination Store</TableCell>
                 <TableCell>Items Count</TableCell>
@@ -314,7 +315,7 @@ export default function ItemIssues() {
 
           {/* Products to Issue */}
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-            <Typography variant="subtitle2" fontWeight={700} sx={{ textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em' }}>
+            <Typography variant="subtitle2" fontWeight={typography.fontWeightBold} sx={{ textTransform: 'uppercase', fontSize: typography.fontSizeXs, letterSpacing: typography.label.letterSpacing }}>
               Products to Issue
             </Typography>
             <Box sx={{ display: 'flex', gap: 1 }}>

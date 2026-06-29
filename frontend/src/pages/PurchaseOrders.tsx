@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
+import { typography } from '../theme/typography';
 import {
   Box,
   Typography,
@@ -269,7 +270,7 @@ export default function PurchaseOrders() {
     <Box sx={{ animation: 'fadeIn 0.3s ease-out', '@keyframes fadeIn': { from: { opacity: 0 }, to: { opacity: 1 } } }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1, mb: 3 }}>
         <Box>
-          <Typography variant="h5" fontWeight={700} sx={{ letterSpacing: '-0.01em' }}>Orders</Typography>
+          <Typography variant="h5" fontWeight={typography.fontWeightBold} sx={{ letterSpacing: typography.pageTitle.letterSpacing }}>Orders</Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
             Manage procurement purchase orders and customer sales fulfillments.
           </Typography>
@@ -291,9 +292,9 @@ export default function PurchaseOrders() {
               onClick={() => setActiveTab(tab)}
               variant={activeTab === tab ? 'filled' : 'outlined'}
               sx={{
-                fontWeight: 700,
-                fontSize: '0.78rem',
-                letterSpacing: '0.02em',
+                fontWeight: typography.fontWeightBold,
+                fontSize: typography.fontSizeXs,
+                letterSpacing: typography.button.letterSpacing,
                 px: 0.5,
                 ...(activeTab === tab
                   ? { bgcolor: '#4f46e5', color: '#fff', borderColor: '#4f46e5' }
@@ -352,7 +353,7 @@ export default function PurchaseOrders() {
                 return (
                   <TableRow key={ord.id + ord.type} hover>
                     <TableCell>
-                      <Typography variant="body2" fontWeight={700} fontFamily="monospace" sx={{ fontSize: '0.82rem', color: '#4f46e5' }}>
+                      <Typography variant="body2" fontWeight={typography.fontWeightBold} fontFamily={typography.fontFamilyMono} sx={{ fontSize: typography.mono.fontSize, color: '#4f46e5' }}>
                         {ord.orderNumber}
                       </Typography>
                     </TableCell>
@@ -363,8 +364,8 @@ export default function PurchaseOrders() {
                         sx={{
                           bgcolor: isPurchase ? '#f5f3ff' : '#ecfdf5',
                           color: isPurchase ? '#7c3aed' : '#059669',
-                          fontWeight: 800,
-                          fontSize: '0.68rem',
+                          fontWeight: typography.fontWeightExtraBold,
+                          fontSize: typography.fontSizeXs,
                           borderRadius: '6px',
                         }}
                       />

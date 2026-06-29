@@ -1,4 +1,5 @@
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { typography } from '../theme/typography';
 import {
   Box,
   Drawer,
@@ -192,7 +193,7 @@ export default function Layout() {
               bgcolor: '#eef2ff',
               '&:hover': { bgcolor: '#e0e7ff' },
               '& .MuiListItemIcon-root': { color: '#4f46e5' },
-              '& .MuiListItemText-primary': { color: '#4f46e5', fontWeight: 600 },
+              '& .MuiListItemText-primary': { color: '#4f46e5', fontWeight: typography.fontWeightSemiBold },
             },
             '&:hover': {
               bgcolor: '#f1f5f9',
@@ -205,8 +206,8 @@ export default function Layout() {
           <ListItemText
             primary={link.label}
             primaryTypographyProps={{
-              fontSize: '0.84rem',
-              fontWeight: isActive ? 600 : 500,
+              fontSize: typography.body.fontSize,
+              fontWeight: isActive ? typography.fontWeightSemiBold : typography.fontWeightMedium,
               color: isActive ? '#4f46e5' : '#475569',
               sx: { transition: 'color 0.15s ease' },
             }}
@@ -235,10 +236,28 @@ export default function Layout() {
           <StarRoundedIcon sx={{ fontSize: '1.4rem' }} />
         </Box>
         <Box>
-          <Typography variant="subtitle1" fontWeight={800} sx={{ lineHeight: 1.1, color: '#4f46e5', letterSpacing: '-0.02em', fontSize: '1.1rem' }}>
+          <Typography
+            sx={{
+              fontFamily: typography.fontFamily,
+              fontWeight: typography.fontWeightExtraBold,
+              fontSize: typography.sectionHeader.fontSize,
+              letterSpacing: typography.display.letterSpacing,
+              lineHeight: 1.1,
+              color: '#4f46e5',
+            }}
+          >
             {settings.stationeryName || 'WOUBREX PLC'}
           </Typography>
-          <Typography variant="caption" sx={{ color: '#64748b', fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.05em' }}>
+          <Typography
+            sx={{
+              fontFamily: typography.fontFamily,
+              fontSize: typography.fontSizeXs,
+              fontWeight: typography.fontWeightBold,
+              letterSpacing: typography.label.letterSpacing,
+              color: '#64748b',
+              textTransform: 'uppercase',
+            }}
+          >
             STOCK MANAGEMENT SYSTEM
           </Typography>
         </Box>
@@ -251,15 +270,15 @@ export default function Layout() {
             width: 38,
             height: 38,
             background: 'linear-gradient(135deg, #6366f1 0%, #a78bfa 100%)',
-            fontSize: '0.85rem',
-            fontWeight: 700,
+            fontSize: typography.body.fontSize,
+            fontWeight: typography.fontWeightBold,
             boxShadow: '0 2px 8px rgba(99,102,241,0.2)',
           }}
         >
           {(user?.fullName ?? 'U').charAt(0).toUpperCase()}
         </Avatar>
         <Box sx={{ minWidth: 0 }}>
-          <Typography variant="body2" fontWeight={600} sx={{ color: 'text.primary', fontSize: '0.85rem', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <Typography variant="body2" sx={{ color: 'text.primary', fontSize: typography.body.fontSize, fontWeight: typography.fontWeightSemiBold, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {user?.fullName}
           </Typography>
           <Chip
@@ -267,8 +286,8 @@ export default function Layout() {
             size="small"
             sx={{
               height: 20,
-              fontSize: '0.65rem',
-              fontWeight: 600,
+              fontSize: typography.fontSizeXs,
+              fontWeight: typography.fontWeightSemiBold,
               textTransform: 'capitalize',
               background: '#eef2ff',
               color: '#4f46e5',
@@ -285,24 +304,24 @@ export default function Layout() {
           {/* Dashboard link directly */}
           {renderLink({ to: '/', label: 'Dashboard', icon: <DashboardRoundedIcon fontSize="small" /> })}
           
-          <Typography variant="overline" sx={{ color: '#94a3b8', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.08em', px: 1.25, mt: 2, mb: 0.5, display: 'block' }}>
+          <Typography variant="overline" sx={{ color: '#94a3b8', fontSize: typography.fontSizeXs, fontWeight: typography.fontWeightBold, letterSpacing: typography.label.letterSpacing, px: 1.25, mt: 2, mb: 0.5, display: 'block' }}>
             MASTER REGISTRIES
           </Typography>
           {masterRegistriesGroup.map(renderLink)}
 
-          <Typography variant="overline" sx={{ color: '#94a3b8', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.08em', px: 1.25, mt: 2, mb: 0.5, display: 'block' }}>
+          <Typography variant="overline" sx={{ color: '#94a3b8', fontSize: typography.fontSizeXs, fontWeight: typography.fontWeightBold, letterSpacing: typography.label.letterSpacing, px: 1.25, mt: 2, mb: 0.5, display: 'block' }}>
             TRANSACTIONS & SALES
           </Typography>
           {transactionsGroup.map(renderLink)}
 
-          <Typography variant="overline" sx={{ color: '#94a3b8', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.08em', px: 1.25, mt: 2, mb: 0.5, display: 'block' }}>
+          <Typography variant="overline" sx={{ color: '#94a3b8', fontSize: typography.fontSizeXs, fontWeight: typography.fontWeightBold, letterSpacing: typography.label.letterSpacing, px: 1.25, mt: 2, mb: 0.5, display: 'block' }}>
             ADMIN & REPORTS
           </Typography>
           {adminGroup.map(renderLink)}
 
           {dealerGroup.length > 0 && (
             <>
-              <Typography variant="overline" sx={{ color: '#94a3b8', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.08em', px: 1.25, mt: 2, mb: 0.5, display: 'block' }}>
+              <Typography variant="overline" sx={{ color: '#94a3b8', fontSize: typography.fontSizeXs, fontWeight: typography.fontWeightBold, letterSpacing: typography.label.letterSpacing, px: 1.25, mt: 2, mb: 0.5, display: 'block' }}>
                 DEALER ACTIONS
               </Typography>
               {dealerGroup.map(renderLink)}
@@ -325,7 +344,7 @@ export default function Layout() {
             <ListItemIcon sx={{ minWidth: 34, color: '#64748b' }}>
               <SettingsRoundedIcon fontSize="small" />
             </ListItemIcon>
-            <ListItemText primary="Settings" primaryTypographyProps={{ fontSize: '0.84rem', fontWeight: 500, color: '#475569' }} />
+            <ListItemText primary="Settings" primaryTypographyProps={{ fontSize: typography.body.fontSize, fontWeight: typography.fontWeightMedium, color: '#475569' }} />
           </ListItemButton>
         </List>
       </Box>
@@ -344,11 +363,11 @@ export default function Layout() {
           <ListItemIcon sx={{ minWidth: 34, color: '#64748b' }}>
             <LogoutRoundedIcon fontSize="small" />
           </ListItemIcon>
-          <ListItemText primary="Logout" primaryTypographyProps={{ fontSize: '0.84rem', fontWeight: 500, color: '#64748b' }} />
+          <ListItemText primary="Logout" primaryTypographyProps={{ fontSize: typography.body.fontSize, fontWeight: typography.fontWeightMedium, color: '#64748b' }} />
         </ListItemButton>
         {/* Version Footer */}
         <Box sx={{ p: 1.5, textAlign: 'center', borderTop: '1px solid', borderColor: 'divider', mt: 'auto' }}>
-          <Typography variant="caption" sx={{ color: '#94a3b8', fontSize: '0.68rem', fontWeight: 600 }}>
+          <Typography variant="caption" sx={{ color: '#94a3b8', fontSize: typography.fontSizeXs, fontWeight: typography.fontWeightSemiBold }}>
             v1.0.0 • Ready
           </Typography>
         </Box>
@@ -407,7 +426,7 @@ export default function Layout() {
                 <MenuRoundedIcon />
               </IconButton>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                <Typography variant="h6" fontWeight={700} sx={{ color: 'text.primary', letterSpacing: '-0.01em', display: { xs: 'none', lg: 'block' } }}>
+                <Typography variant="h6" fontWeight={typography.fontWeightBold} sx={{ color: 'text.primary', letterSpacing: typography.sectionHeader.letterSpacing, display: { xs: 'none', lg: 'block' } }}>
                   {pageTitle}
                 </Typography>
                 <Divider orientation="vertical" flexItem sx={{ display: { xs: 'none', lg: 'block' }, mx: 0.5 }} />
@@ -415,9 +434,9 @@ export default function Layout() {
                   variant="caption" 
                   sx={{ 
                     color: '#64748b', 
-                    fontWeight: 700, 
-                    letterSpacing: '0.05em', 
-                    fontSize: '0.72rem', 
+                    fontWeight: typography.fontWeightBold, 
+                    letterSpacing: typography.label.letterSpacing, 
+                    fontSize: typography.fontSizeXs, 
                     display: { xs: 'none', md: 'block' } 
                   }}
                 >
@@ -439,7 +458,7 @@ export default function Layout() {
                     sx={{
                       borderRadius: 2,
                       bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
-                      '& .MuiSelect-select': { py: '6px', px: 2, fontSize: '0.84rem', fontWeight: 600 },
+                      '& .MuiSelect-select': { py: '6px', px: 2, fontSize: typography.body.fontSize, fontWeight: typography.fontWeightSemiBold },
                     }}
                   >
                     {stores.map((s) => (
@@ -458,24 +477,24 @@ export default function Layout() {
                   sx={{
                     bgcolor: '#ecfdf5',
                     color: '#059669',
-                    fontWeight: 600,
-                    fontSize: '0.72rem',
+                    fontWeight: typography.fontWeightSemiBold,
+                    fontSize: typography.fontSizeXs,
                     height: 26,
                     display: { xs: 'none', sm: 'flex' },
                   }}
                 />
               )}
-              <Typography variant="body2" color="text.secondary" sx={{ display: { xs: 'none', md: 'block' }, fontSize: '0.84rem' }}>
+              <Typography variant="body2" color="text.secondary" sx={{ display: { xs: 'none', md: 'block' }, fontSize: typography.body.fontSize }}>
                 {formatDate()}
               </Typography>
               <Divider orientation="vertical" flexItem sx={{ mx: 0.5, display: { xs: 'none', md: 'block' } }} />
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Avatar sx={{ width: 34, height: 34, background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)', fontSize: '0.82rem', fontWeight: 700 }}>
+                <Avatar sx={{ width: 34, height: 34, background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)', fontSize: typography.body.fontSize, fontWeight: typography.fontWeightBold }}>
                   {(user?.fullName ?? 'U').charAt(0).toUpperCase()}
                 </Avatar>
                 <Box sx={{ display: { xs: 'none', lg: 'block' } }}>
-                  <Typography variant="body2" fontWeight={600} sx={{ lineHeight: 1.3, fontSize: '0.84rem' }}>{user?.fullName}</Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'capitalize', fontSize: '0.72rem' }}>{user?.role}</Typography>
+                  <Typography variant="body2" fontWeight={typography.fontWeightSemiBold} sx={{ lineHeight: 1.3, fontSize: typography.body.fontSize }}>{user?.fullName}</Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'capitalize', fontSize: typography.fontSizeXs }}>{user?.role}</Typography>
                 </Box>
               </Box>
               <Tooltip title={themeMode === 'light' ? 'Dark mode' : 'Light mode'}>
@@ -513,11 +532,11 @@ export default function Layout() {
         PaperProps={{ sx: { width: 340, maxHeight: 480, mt: 1, borderRadius: 3, boxShadow: '0 10px 40px -10px rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column' } }}
       >
         <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="subtitle2" fontWeight={700}>Notifications</Typography>
+          <Typography variant="subtitle2" fontWeight={typography.fontWeightBold}>Notifications</Typography>
           <Box sx={{ display: 'flex', gap: 1 }}>
-            {unreadCount > 0 && <Chip label={`${unreadCount} new`} size="small" color="primary" sx={{ height: 20, fontSize: '0.7rem', fontWeight: 700 }} />}
+            {unreadCount > 0 && <Chip label={`${unreadCount} new`} size="small" color="primary" sx={{ height: 20, fontSize: typography.fontSizeXs, fontWeight: typography.fontWeightBold }} />}
             {notifications.length > 0 && (
-              <Typography variant="caption" sx={{ cursor: 'pointer', color: 'primary.main', fontWeight: 600, '&:hover': { textDecoration: 'underline' } }} onClick={markAllRead}>
+              <Typography variant="caption" sx={{ cursor: 'pointer', color: 'primary.main', fontWeight: typography.fontWeightSemiBold, '&:hover': { textDecoration: 'underline' } }} onClick={markAllRead}>
                 Mark all read
               </Typography>
             )}
@@ -541,7 +560,7 @@ export default function Layout() {
               >
                 <ListItemText
                   primary={
-                    <Typography variant="body2" fontWeight={n.isRead ? 500 : 700} sx={{ color: 'text.primary', mb: 0.5 }}>
+                    <Typography variant="body2" fontWeight={n.isRead ? typography.fontWeightMedium : typography.fontWeightBold} sx={{ color: 'text.primary', mb: 0.5 }}>
                       {n.title}
                     </Typography>
                   }
@@ -550,7 +569,7 @@ export default function Layout() {
                       <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', lineHeight: 1.3, mb: 0.5 }}>
                         {n.message}
                       </Typography>
-                      <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.65rem' }}>
+                      <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: typography.fontSizeXs }}>
                         {new Date(n.createdAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })}
                       </Typography>
                     </>

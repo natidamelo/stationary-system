@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { typography } from '../theme/typography';
 import {
   Box,
   Typography,
@@ -151,10 +152,10 @@ export default function Dashboard() {
     <Box sx={{ animation: 'fadeIn 0.4s ease-out' }}>
       {/* Header */}
       <Box sx={{ mb: 3.5 }}>
-        <Typography variant="h5" fontWeight={700} sx={{ color: 'text.primary', letterSpacing: '-0.02em', mb: 0.5 }}>
+        <Typography variant="h5" fontWeight={typography.fontWeightBold} sx={{ color: 'text.primary', letterSpacing: typography.pageTitle.letterSpacing, mb: 0.5 }}>
           Welcome back, {firstName}
         </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.9rem' }}>
+        <Typography variant="body2" color="text.secondary" sx={{ fontSize: typography.body.fontSize }}>
           Here&apos;s what&apos;s happening at your stationery today.
         </Typography>
       </Box>
@@ -181,13 +182,13 @@ export default function Dashboard() {
               <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: kpi.gradient }} />
               <CardContent sx={{ p: 2.5, pt: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <Box>
-                  <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: '0.72rem', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                  <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: typography.fontWeightSemiBold, fontSize: typography.fontSizeXs, letterSpacing: typography.label.letterSpacing, textTransform: 'uppercase' }}>
                     {kpi.label}
                   </Typography>
-                  <Typography variant="h4" fontWeight={800} sx={{ mt: 0.75, mb: 0.25, fontSize: '1.75rem', letterSpacing: '-0.02em', color: 'text.primary' }}>
+                  <Typography variant="h4" fontWeight={typography.fontWeightExtraBold} sx={{ mt: 0.75, mb: 0.25, fontSize: typography.display.fontSize, letterSpacing: typography.display.letterSpacing, color: 'text.primary' }}>
                     {kpi.value}
                   </Typography>
-                  <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500, fontSize: '0.75rem' }}>
+                  <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: typography.fontWeightMedium, fontSize: typography.caption.fontSize }}>
                     {kpi.sub}
                   </Typography>
                 </Box>
@@ -250,10 +251,10 @@ export default function Dashboard() {
                 <BarChartRoundedIcon sx={{ fontSize: '1.5rem' }} />
               </Box>
               <Box>
-                <Typography variant="subtitle1" fontWeight={700} sx={{ fontSize: '1.1rem', color: 'text.primary', letterSpacing: '-0.02em' }}>
+                <Typography variant="subtitle1" fontWeight={typography.fontWeightBold} sx={{ fontSize: typography.sectionHeader.fontSize, color: 'text.primary', letterSpacing: typography.sectionHeader.letterSpacing }}>
                   Sales overview
                 </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: typography.caption.fontSize }}>
                   Revenue by period
                 </Typography>
               </Box>
@@ -268,8 +269,8 @@ export default function Dashboard() {
                   border: '1px solid #e5e7eb',
                   borderRadius: 2,
                   textTransform: 'none',
-                  fontWeight: 600,
-                  fontSize: '0.8rem',
+                  fontWeight: typography.fontWeightSemiBold,
+                  fontSize: typography.fontSizeXs,
                   px: 1.5,
                   '&.Mui-selected': {
                     background: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)',
@@ -340,10 +341,10 @@ export default function Dashboard() {
           </Box>
           {!salesChartLoading && salesChartData.length > 0 && (
             <Box sx={{ mt: 1.5, pt: 1.5, borderTop: '1px solid #f3f4f6', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
-              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>
-                Total revenue: <strong sx={{ color: 'text.primary' }}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: typography.fontWeightMedium }}>
+                Total revenue: <Box component="strong" sx={{ color: 'text.primary' }}>
                   {salesChartData.reduce((s, d) => s + d.revenue, 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                </strong>
+                </Box>
               </Typography>
               <Typography variant="caption" color="text.secondary">
                 {salesChartData.length} {salesChartPeriod === 'day' ? 'days' : salesChartPeriod === 'week' ? 'weeks' : salesChartPeriod === 'month' ? 'months' : 'years'}
@@ -356,7 +357,7 @@ export default function Dashboard() {
       {/* Today's Overview + Alerts */}
       <Grid container spacing={2.5} sx={{ mb: 3.5 }}>
         <Grid size={{ xs: 12, md: 6 }}>
-          <Typography variant="subtitle2" sx={{ mb: 1.5, fontSize: '0.72rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'text.secondary', fontWeight: 700 }}>
+          <Typography variant="overline" sx={{ display: 'block', mb: 1.5, fontSize: typography.fontSizeXs, letterSpacing: typography.label.letterSpacing, fontWeight: typography.fontWeightBold, color: 'text.secondary' }}>
             TODAY&apos;S OVERVIEW
           </Typography>
           <Grid container spacing={2}>
@@ -365,11 +366,11 @@ export default function Dashboard() {
                 <CardContent sx={{ py: 2, px: 2.5 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                     <TrendingUpRoundedIcon sx={{ fontSize: '1rem', color: '#059669' }} />
-                    <Typography variant="caption" sx={{ fontWeight: 600, color: '#059669', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    <Typography variant="caption" sx={{ fontWeight: typography.fontWeightSemiBold, color: '#059669', fontSize: typography.fontSizeXs, textTransform: 'uppercase', letterSpacing: typography.label.letterSpacing }}>
                       Completed
                     </Typography>
                   </Box>
-                  <Typography variant="h4" fontWeight={800} sx={{ fontSize: '1.5rem', color: '#065f46', letterSpacing: '-0.02em' }}>
+                  <Typography variant="h4" fontWeight={typography.fontWeightExtraBold} sx={{ fontSize: typography.fontSize3xl, color: '#065f46', letterSpacing: typography.display.letterSpacing }}>
                     —
                   </Typography>
                 </CardContent>
@@ -380,11 +381,11 @@ export default function Dashboard() {
                 <CardContent sx={{ py: 2, px: 2.5 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                     <FlagRoundedIcon sx={{ fontSize: '1rem', color: '#4f46e5' }} />
-                    <Typography variant="caption" sx={{ fontWeight: 600, color: '#4f46e5', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    <Typography variant="caption" sx={{ fontWeight: typography.fontWeightSemiBold, color: '#4f46e5', fontSize: typography.fontSizeXs, textTransform: 'uppercase', letterSpacing: typography.label.letterSpacing }}>
                       Pending
                     </Typography>
                   </Box>
-                  <Typography variant="h4" fontWeight={800} sx={{ fontSize: '1.5rem', color: '#312e81', letterSpacing: '-0.02em' }}>
+                  <Typography variant="h4" fontWeight={typography.fontWeightExtraBold} sx={{ fontSize: typography.fontSize3xl, color: '#312e81', letterSpacing: typography.display.letterSpacing }}>
                     {summary.pendingApprovals + summary.draftPurchaseOrders}
                   </Typography>
                 </CardContent>
@@ -394,7 +395,7 @@ export default function Dashboard() {
         </Grid>
 
         <Grid size={{ xs: 12, md: 6 }}>
-          <Typography variant="subtitle2" sx={{ mb: 1.5, fontSize: '0.72rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'text.secondary', fontWeight: 700 }}>
+          <Typography variant="overline" sx={{ display: 'block', mb: 1.5, fontSize: typography.fontSizeXs, letterSpacing: typography.label.letterSpacing, fontWeight: typography.fontWeightBold, color: 'text.secondary' }}>
             ALERTS
           </Typography>
           <Card
@@ -421,25 +422,24 @@ export default function Dashboard() {
                 <WarningAmberRoundedIcon sx={{ color: summary.lowStockCount > 0 ? '#dc2626' : '#9ca3af', fontSize: '1.5rem' }} />
               </Box>
               <Box sx={{ flex: 1 }}>
-                <Typography fontWeight={700} sx={{ color: summary.lowStockCount > 0 ? '#dc2626' : 'text.secondary', fontSize: '0.9rem', mb: 0.25 }}>
+                <Typography fontWeight={typography.fontWeightBold} sx={{ color: summary.lowStockCount > 0 ? '#dc2626' : 'text.secondary', fontSize: typography.body.fontSize, mb: 0.25 }}>
                   {summary.lowStockCount > 0 ? `${summary.lowStockCount} Low Stock Item${summary.lowStockCount !== 1 ? 's' : ''}` : 'No upcoming alerts'}
                 </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: typography.fontSizeXs }}>
                   {summary.lowStockCount > 0 ? 'Reorder supplies needed.' : 'No low stock or pending items.'}
                 </Typography>
               </Box>
               {summary.lowStockCount > 0 && (
-                <Chip label="Urgent" size="small" sx={{ bgcolor: '#fef2f2', color: '#dc2626', fontWeight: 700, fontSize: '0.7rem', height: 24, border: '1px solid #fecaca' }} />
+                <Chip label="Urgent" size="small" sx={{ bgcolor: '#fef2f2', color: '#dc2626', fontWeight: typography.fontWeightBold, fontSize: typography.fontSizeXs, height: 24, border: '1px solid #fecaca' }} />
               )}
             </CardContent>
           </Card>
         </Grid>
       </Grid>
 
-      {/* Quick Actions + Recent Activity */}
       <Grid container spacing={3}>
         <Grid size={{ xs: 12, md: 6 }}>
-          <Typography variant="subtitle2" sx={{ mb: 2, fontSize: '0.72rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'text.secondary', fontWeight: 700 }}>
+          <Typography variant="overline" sx={{ display: 'block', mb: 2, fontSize: typography.fontSizeXs, letterSpacing: typography.label.letterSpacing, fontWeight: typography.fontWeightBold, color: 'text.secondary' }}>
             QUICK ACTIONS
           </Typography>
           <Grid container spacing={1.5}>
@@ -474,7 +474,7 @@ export default function Dashboard() {
                     >
                       {action.icon}
                     </Box>
-                    <Typography variant="body2" fontWeight={600} sx={{ color: 'text.primary', fontSize: '0.84rem' }}>
+                    <Typography variant="body2" sx={{ color: 'text.primary', fontSize: typography.body.fontSize, fontWeight: typography.fontWeightSemiBold }}>
                       {action.label}
                     </Typography>
                   </CardContent>
@@ -485,7 +485,7 @@ export default function Dashboard() {
         </Grid>
 
         <Grid size={{ xs: 12, md: 6 }}>
-          <Typography variant="subtitle2" sx={{ mb: 2, fontSize: '0.72rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'text.secondary', fontWeight: 700 }}>
+          <Typography variant="overline" sx={{ display: 'block', mb: 2, fontSize: typography.fontSizeXs, letterSpacing: typography.label.letterSpacing, fontWeight: typography.fontWeightBold, color: 'text.secondary' }}>
             RECENT ACTIVITY
           </Typography>
           <Card sx={{ minHeight: 200 }}>
@@ -519,10 +519,10 @@ export default function Dashboard() {
                       }}
                     />
                     <Box sx={{ flex: 1 }}>
-                      <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.primary', fontSize: '0.875rem', lineHeight: 1.5 }}>
+                      <Typography variant="body2" sx={{ fontWeight: typography.fontWeightMedium, color: 'text.primary', fontSize: typography.body.fontSize, lineHeight: 1.5 }}>
                         {item.text}
                       </Typography>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.72rem' }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: typography.fontSizeXs }}>
                         {item.time}
                       </Typography>
                     </Box>
@@ -540,7 +540,7 @@ export default function Dashboard() {
           <CardContent sx={{ p: 2.5 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
               <Box>
-                <Typography variant="subtitle1" fontWeight={700} sx={{ fontSize: '1rem', color: 'text.primary' }}>
+                <Typography variant="subtitle1" fontWeight={typography.fontWeightBold} sx={{ fontSize: typography.fontSizeLg, color: 'text.primary' }}>
                   Low Stock Items
                 </Typography>
                 <Typography variant="caption" color="text.secondary">Items that need reordering</Typography>
@@ -549,7 +549,7 @@ export default function Dashboard() {
                 variant="outlined"
                 size="small"
                 endIcon={<ArrowForwardRoundedIcon sx={{ fontSize: '1rem !important' }} />}
-                sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 2, fontSize: '0.8rem' }}
+                sx={{ textTransform: 'none', fontWeight: typography.fontWeightSemiBold, borderRadius: 2, fontSize: typography.fontSizeXs }}
                 onClick={() => navigate('/inventory')}
               >
                 View all
@@ -573,13 +573,13 @@ export default function Dashboard() {
                     return (
                       <TableRow key={item.id}>
                         <TableCell>
-                          <Typography variant="body2" fontFamily="monospace" sx={{ fontSize: '0.8rem', color: 'text.secondary' }}>{item.sku}</Typography>
+                          <Typography variant="body2" fontFamily={typography.fontFamilyMono} sx={{ fontSize: typography.mono.fontSize, color: 'text.secondary' }}>{item.sku}</Typography>
                         </TableCell>
                         <TableCell>
-                          <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.875rem' }}>{item.name}</Typography>
+                          <Typography variant="body2" fontWeight={typography.fontWeightSemiBold} sx={{ fontSize: typography.body.fontSize }}>{item.name}</Typography>
                         </TableCell>
                         <TableCell align="right">
-                          <Typography variant="body2" fontWeight={700} sx={{ color }}>{item.currentStock}</Typography>
+                          <Typography variant="body2" fontWeight={typography.fontWeightBold} sx={{ color }}>{item.currentStock}</Typography>
                         </TableCell>
                         <TableCell align="right">
                           <Typography variant="body2" color="text.secondary">{item.reorderLevel}</Typography>
@@ -597,7 +597,7 @@ export default function Dashboard() {
                                 '& .MuiLinearProgress-bar': { bgcolor: color, borderRadius: 3 },
                               }}
                             />
-                            <Typography variant="caption" sx={{ color, fontWeight: 600, fontSize: '0.72rem', minWidth: 32 }}>
+                            <Typography variant="caption" sx={{ color, fontWeight: typography.fontWeightSemiBold, fontSize: typography.fontSizeXs, minWidth: 32 }}>
                               {Math.round(pct)}%
                             </Typography>
                           </Box>

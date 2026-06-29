@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { typography } from '../theme/typography';
 import {
   Box,
   Typography,
@@ -263,7 +264,7 @@ export default function PurchaseRequests() {
     <Box sx={{ animation: 'fadeIn 0.3s ease-out', '@keyframes fadeIn': { from: { opacity: 0 }, to: { opacity: 1 } } }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2, mb: 3 }}>
         <Box>
-          <Typography variant="h5" fontWeight={700} sx={{ letterSpacing: '-0.01em' }}>{title}</Typography>
+          <Typography variant="h5" fontWeight={typography.fontWeightBold} sx={{ letterSpacing: typography.pageTitle.letterSpacing }}>{title}</Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
             Request products and manage internal inventory procurements.
           </Typography>
@@ -362,17 +363,17 @@ export default function PurchaseRequests() {
                           {expandedId === pr.id ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
                         </IconButton>
                       </TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>{pr.requestNumber}</TableCell>
+                      <TableCell sx={{ fontWeight: typography.fontWeightSemiBold }}>{pr.requestNumber}</TableCell>
                       <TableCell>{pr.store?.name || '—'}</TableCell>
                       <TableCell>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Typography variant="body2" fontWeight={500}>{pr.requestedBy?.fullName}</Typography>
+                          <Typography variant="body2" fontWeight={typography.fontWeightMedium}>{pr.requestedBy?.fullName}</Typography>
                           {pr.requestedBy?.role && (
                             <Chip label={pr.requestedBy.role} size="small" sx={{ height: 18, fontSize: '0.6rem', textTransform: 'capitalize' }} />
                           )}
                         </Box>
                       </TableCell>
-                      <TableCell sx={{ fontWeight: 700, color: 'primary.main' }}>
+                      <TableCell sx={{ fontWeight: typography.fontWeightBold, color: 'primary.main' }}>
                         ETB {(pr.estimatedTotal ?? 0).toFixed(2)}
                       </TableCell>
                       <TableCell>
@@ -388,7 +389,7 @@ export default function PurchaseRequests() {
                               ? 'error'
                               : 'default'
                           }
-                          sx={{ fontWeight: 700, fontSize: '0.65rem' }}
+                          sx={{ fontWeight: typography.fontWeightBold, fontSize: typography.fontSizeXs }}
                         />
                       </TableCell>
                       <TableCell>{new Date(pr.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</TableCell>
@@ -417,7 +418,7 @@ export default function PurchaseRequests() {
                       <TableCell colSpan={8} sx={{ py: 0, borderBottom: expandedId === pr.id ? undefined : 0 }}>
                         <Collapse in={expandedId === pr.id} timeout="auto" unmountOnExit>
                           <Box sx={{ py: 2.5, px: 3, bgcolor: 'action.hover' }}>
-                            <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1.5 }}>Requested Items Details</Typography>
+                            <Typography variant="subtitle2" fontWeight={typography.fontWeightBold} sx={{ mb: 1.5 }}>Requested Items Details</Typography>
                             <Table size="small" sx={{ maxWidth: 720, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
                               <TableHead>
                                 <TableRow>
@@ -435,11 +436,11 @@ export default function PurchaseRequests() {
                                   const lineTotal = unitPrice * line.quantity;
                                   return (
                                     <TableRow key={idx}>
-                                      <TableCell sx={{ fontWeight: 500 }}>{line.item?.name ?? '—'}</TableCell>
+                                      <TableCell sx={{ fontWeight: typography.fontWeightMedium }}>{line.item?.name ?? '—'}</TableCell>
                                       <TableCell>{line.item?.sku ?? '—'}</TableCell>
-                                      <TableCell align="right" sx={{ fontWeight: 600 }}>{line.quantity}</TableCell>
+                                      <TableCell align="right" sx={{ fontWeight: typography.fontWeightSemiBold }}>{line.quantity}</TableCell>
                                       <TableCell align="right">ETB {unitPrice.toFixed(2)}</TableCell>
-                                      <TableCell align="right" sx={{ fontWeight: 600 }}>ETB {lineTotal.toFixed(2)}</TableCell>
+                                      <TableCell align="right" sx={{ fontWeight: typography.fontWeightSemiBold }}>ETB {lineTotal.toFixed(2)}</TableCell>
                                       <TableCell>{line.reason || '—'}</TableCell>
                                     </TableRow>
                                   );
@@ -448,13 +449,13 @@ export default function PurchaseRequests() {
                             </Table>
                             {(pr.purpose || pr.notes) && (
                               <Box sx={{ mt: 2 }}>
-                                <Typography variant="caption" color="text.secondary" fontWeight={700}>Purpose / Notes:</Typography>
+                                <Typography variant="caption" color="text.secondary" fontWeight={typography.fontWeightBold}>Purpose / Notes:</Typography>
                                 <Typography variant="body2" color="text.primary">{pr.purpose || pr.notes}</Typography>
                               </Box>
                             )}
                             {pr.rejectionReason && (
                               <Box sx={{ mt: 2 }}>
-                                <Typography variant="caption" color="error.main" fontWeight={700}>Rejection Reason:</Typography>
+                                <Typography variant="caption" color="error.main" fontWeight={typography.fontWeightBold}>Rejection Reason:</Typography>
                                 <Typography variant="body2" color="error.main">{pr.rejectionReason}</Typography>
                               </Box>
                             )}
@@ -472,7 +473,7 @@ export default function PurchaseRequests() {
 
       {/* New Requisition Dialog */}
       <Dialog open={modal} onClose={() => { if (!submitting) { setModal(false); setCreateError(null); } }} maxWidth="md" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <DialogTitle sx={{ fontWeight: typography.fontWeightBold, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           Create Purchase Requisition
           <IconButton onClick={() => { if (!submitting) { setModal(false); setCreateError(null); } }} disabled={submitting}>
             <CloseIcon />
@@ -482,7 +483,7 @@ export default function PurchaseRequests() {
           {createError && <Alert severity="error" sx={{ mb: 2 }}>{createError}</Alert>}
           
           {/* Store Selection */}
-          <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>Requesting Store *</Typography>
+          <Typography variant="subtitle2" fontWeight={typography.fontWeightBold} sx={{ mb: 1 }}>Requesting Store *</Typography>
           <FormControl fullWidth margin="none" sx={{ mb: 3 }}>
             <Select
               value={selectedStoreId}
@@ -501,7 +502,7 @@ export default function PurchaseRequests() {
           </FormControl>
 
           {/* Purpose / Notes */}
-          <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>Purpose / Notes</Typography>
+          <Typography variant="subtitle2" fontWeight={typography.fontWeightBold} sx={{ mb: 1 }}>Purpose / Notes</Typography>
           <TextField
             fullWidth
             multiline
@@ -515,7 +516,7 @@ export default function PurchaseRequests() {
 
           {/* Requisition Items Header */}
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-            <Typography variant="subtitle2" fontWeight={700}>REQUISITION ITEMS *</Typography>
+            <Typography variant="subtitle2" fontWeight={typography.fontWeightBold}>REQUISITION ITEMS *</Typography>
             <Box sx={{ display: 'flex', gap: 1 }}>
               <Button
                 size="small"
@@ -543,11 +544,11 @@ export default function PurchaseRequests() {
             <Table size="small">
               <TableHead sx={{ bgcolor: 'action.hover' }}>
                 <TableRow>
-                  <TableCell sx={{ fontWeight: 600, color: 'text.secondary', py: 1.5 }}>PRODUCT</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 600, color: 'text.secondary', py: 1.5 }}>QUANTITY</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 600, color: 'text.secondary', py: 1.5 }}>EST. UNIT COST (ETB)</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 600, color: 'text.secondary', py: 1.5 }}>EST. SUBTOTAL (ETB)</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 600, color: 'text.secondary', py: 1.5 }}>ACTIONS</TableCell>
+                  <TableCell sx={{ fontWeight: typography.fontWeightBold, color: 'text.secondary', py: 1.5 }}>PRODUCT</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: typography.fontWeightBold, color: 'text.secondary', py: 1.5 }}>QUANTITY</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: typography.fontWeightBold, color: 'text.secondary', py: 1.5 }}>EST. UNIT COST (ETB)</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: typography.fontWeightBold, color: 'text.secondary', py: 1.5 }}>EST. SUBTOTAL (ETB)</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: typography.fontWeightBold, color: 'text.secondary', py: 1.5 }}>ACTIONS</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -584,10 +585,10 @@ export default function PurchaseRequests() {
                           sx={{ width: 80 }}
                         />
                       </TableCell>
-                      <TableCell align="right" sx={{ py: 1, fontWeight: 500 }}>
+                      <TableCell align="right" sx={{ py: 1, fontWeight: typography.fontWeightMedium }}>
                         {unitCost.toFixed(2)}
                       </TableCell>
-                      <TableCell align="right" sx={{ py: 1, fontWeight: 600 }}>
+                      <TableCell align="right" sx={{ py: 1, fontWeight: typography.fontWeightSemiBold }}>
                         ETB {subtotal.toFixed(2)}
                       </TableCell>
                       <TableCell align="center" sx={{ py: 1 }}>
@@ -608,10 +609,10 @@ export default function PurchaseRequests() {
 
           {/* Grand Total */}
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', mb: 3 }}>
-            <Typography variant="body2" color="text.secondary" fontWeight={700} sx={{ mr: 1.5 }}>
+            <Typography variant="body2" color="text.secondary" fontWeight={typography.fontWeightBold} sx={{ mr: 1.5 }}>
               ESTIMATED GRAND TOTAL:
             </Typography>
-            <Typography variant="h6" fontWeight={700} color="primary.main">
+            <Typography variant="h6" fontWeight={typography.fontWeightBold} color="primary.main">
               ETB {formLines.reduce((sum, l) => {
                 const selectedItem = items.find((i) => i.id === l.itemId);
                 return sum + (selectedItem?.price ?? 0) * l.quantity;
@@ -624,7 +625,7 @@ export default function PurchaseRequests() {
             variant="contained"
             onClick={submitRequest}
             disabled={submitting}
-            sx={{ px: 4, py: 1, borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
+            sx={{ px: 4, py: 1, borderRadius: 2, textTransform: 'none', fontWeight: typography.fontWeightSemiBold }}
           >
             {submitting ? 'Submitting...' : 'Submit Requisition'}
           </Button>

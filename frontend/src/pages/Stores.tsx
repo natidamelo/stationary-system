@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { typography } from '../theme/typography';
 import {
   Box,
   Typography,
@@ -104,7 +105,7 @@ export default function Stores() {
     <Box sx={{ animation: 'fadeIn 0.3s ease-out', '@keyframes fadeIn': { from: { opacity: 0 }, to: { opacity: 1 } } }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1, mb: 3 }}>
         <Box>
-          <Typography variant="h5" fontWeight={700} sx={{ letterSpacing: '-0.01em' }}>Store Management</Typography>
+          <Typography variant="h5" fontWeight={typography.fontWeightBold} sx={{ letterSpacing: typography.pageTitle.letterSpacing }}>Store Management</Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
             {list.length} {list.length === 1 ? 'store' : 'stores'} total
           </Typography>
@@ -139,7 +140,7 @@ export default function Stores() {
               ) : (
                 list.map((s) => (
                   <TableRow key={s.id}>
-                    <TableCell sx={{ fontWeight: 600 }}>{s.name}</TableCell>
+                    <TableCell sx={{ fontWeight: typography.fontWeightSemiBold }}>{s.name}</TableCell>
                     <TableCell>{s.location || '-'}</TableCell>
                     <TableCell>
                       <Typography
@@ -148,7 +149,7 @@ export default function Stores() {
                           px: 1,
                           py: 0.5,
                           borderRadius: 1,
-                          fontWeight: 600,
+                          fontWeight: typography.fontWeightSemiBold,
                           bgcolor: s.isActive ? '#ecfdf5' : '#fef2f2',
                           color: s.isActive ? '#059669' : '#dc2626',
                         }}

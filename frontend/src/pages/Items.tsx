@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { typography } from '../theme/typography';
 import {
   Box,
   Typography,
@@ -495,7 +496,7 @@ export default function Items() {
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
         <Box>
-          <Typography variant="h5" fontWeight={700} sx={{ letterSpacing: '-0.02em', mb: 0.5 }}>Products</Typography>
+          <Typography variant="h5" fontWeight={typography.fontWeightBold} sx={{ letterSpacing: typography.pageTitle.letterSpacing, mb: 0.5 }}>Products</Typography>
           <Typography variant="body2" color="text.secondary">View, add, edit, and manage physical inventory levels.</Typography>
         </Box>
         {canEdit(user?.role ?? '') && (
@@ -503,7 +504,7 @@ export default function Items() {
             variant="contained"
             startIcon={<AddIcon />}
             onClick={openAdd}
-            sx={{ bgcolor: '#4f46e5', '&:hover': { bgcolor: '#4338ca' }, textTransform: 'none', px: 2.5, py: 1, borderRadius: 2, fontWeight: 600 }}
+            sx={{ bgcolor: '#4f46e5', '&:hover': { bgcolor: '#4338ca' }, textTransform: 'none', px: 2.5, py: 1, borderRadius: 2, fontWeight: typography.fontWeightSemiBold }}
           >
             Add Product
           </Button>
@@ -625,17 +626,17 @@ export default function Items() {
           <TableBody>
             {filteredItems.map((i) => (
               <TableRow key={i.id} hover sx={{ '&:last-child td': { border: 0 } }}>
-                <TableCell sx={{ fontFamily: 'monospace', fontWeight: 500, color: '#64748b' }}>{i.sku}</TableCell>
+                <TableCell sx={{ fontFamily: typography.fontFamilyMono, fontSize: typography.mono.fontSize, fontWeight: typography.fontWeightMedium, color: '#64748b' }}>{i.sku}</TableCell>
                 <TableCell>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                     {i.imageUrl ? (
                       <Box component="img" src={i.imageUrl} sx={{ width: 36, height: 36, borderRadius: 2, objectFit: 'cover' }} />
                     ) : (
                       <Box sx={{ width: 36, height: 36, borderRadius: 2, bgcolor: '#eef2ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4f46e5' }}>
-                        <Typography variant="overline" sx={{ fontWeight: 800, fontSize: '0.85rem' }}>{i.name.charAt(0)}</Typography>
+                        <Typography variant="overline" sx={{ fontWeight: typography.fontWeightExtraBold, fontSize: typography.body.fontSize }}>{i.name.charAt(0)}</Typography>
                       </Box>
                     )}
-                    <Typography variant="body2" fontWeight={600} color="#1e293b">{i.name}</Typography>
+                    <Typography variant="body2" fontWeight={typography.fontWeightSemiBold} color="#1e293b">{i.name}</Typography>
                   </Box>
                 </TableCell>
                 <TableCell sx={{ color: '#475569' }}>{i.category?.name ?? '—'}</TableCell>
@@ -696,7 +697,7 @@ export default function Items() {
         <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>{modal === 'add' ? 'Add New Product' : 'Edit Product'}</DialogTitle>
         <DialogContent dividers sx={{ py: 2 }}>
           <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 id="sku-field"
                 label="Product ID (Auto-generated)"
@@ -707,7 +708,7 @@ export default function Items() {
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 id="name-field"
                 label="Product Name *"
@@ -717,7 +718,7 @@ export default function Items() {
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <FormControl fullWidth>
                   <InputLabel>Category *</InputLabel>
@@ -745,7 +746,7 @@ export default function Items() {
                 )}
               </Box>
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <FormControl fullWidth>
                 <InputLabel>Unit *</InputLabel>
                 <Select
@@ -767,7 +768,7 @@ export default function Items() {
             </Grid>
 
             {modal === 'add' && (
-              <Grid item xs={12} sm={4}>
+              <Grid size={{ xs: 12, sm: 4 }}>
                 <TextField
                   type="number"
                   label="Initial Stock *"
@@ -779,7 +780,7 @@ export default function Items() {
               </Grid>
             )}
 
-            <Grid item xs={12} sm={modal === 'add' ? 4 : 6}>
+            <Grid size={{ xs: 12, sm: modal === 'add' ? 4 : 6 }}>
               <TextField
                 type="number"
                 label="Min Stock Level (Low Threshold) *"
@@ -789,7 +790,7 @@ export default function Items() {
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               />
             </Grid>
-            <Grid item xs={12} sm={modal === 'add' ? 4 : 6}>
+            <Grid size={{ xs: 12, sm: modal === 'add' ? 4 : 6 }}>
               <TextField
                 type="number"
                 label="Max Stock Level (Reorder Target) *"
@@ -800,7 +801,7 @@ export default function Items() {
               />
             </Grid>
 
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 type="number"
                 label="Cost Price (ETB)"
@@ -810,7 +811,7 @@ export default function Items() {
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 type="number"
                 label="Selling Price (ETB) *"
@@ -821,7 +822,7 @@ export default function Items() {
               />
             </Grid>
 
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 id="barcode-field"
                 label="Barcode"
@@ -842,7 +843,7 @@ export default function Items() {
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', height: '100%' }}>
                 <Button variant="outlined" component="label" sx={{ textTransform: 'none', borderRadius: 2 }}>
                   Upload Image
@@ -859,7 +860,7 @@ export default function Items() {
               </Box>
             </Grid>
 
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <TextField
                 label="Description"
                 value={form.description}
@@ -871,7 +872,7 @@ export default function Items() {
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <TextField
                 label="Tags (Comma separated)"
                 value={form.tags}
@@ -971,46 +972,46 @@ export default function Items() {
                 <Box component="img" src={viewItem.imageUrl} sx={{ width: '100%', maxHeight: 200, objectFit: 'contain', borderRadius: 3, border: '1px solid #f1f5f9' }} />
               )}
               <Box>
-                <Typography variant="h6" fontWeight={700} color="#1e293b">{viewItem.name}</Typography>
-                <Typography variant="caption" sx={{ fontFamily: 'monospace', color: '#64748b', fontSize: '0.9rem' }}>SKU: {viewItem.sku}</Typography>
+                <Typography variant="h6" fontWeight={typography.fontWeightBold} color="#1e293b">{viewItem.name}</Typography>
+                <Typography variant="caption" sx={{ fontFamily: typography.fontFamilyMono, color: '#64748b', fontSize: typography.mono.fontSize }}>SKU: {viewItem.sku}</Typography>
               </Box>
 
               <Grid container spacing={2}>
-                <Grid item xs={6}>
+                <Grid size={{ xs: 6 }}>
                   <Typography variant="caption" color="text.secondary">CATEGORY</Typography>
-                  <Typography variant="body2" fontWeight={600}>{viewItem.category?.name ?? '—'}</Typography>
+                  <Typography variant="body2" fontWeight={typography.fontWeightSemiBold}>{viewItem.category?.name ?? '—'}</Typography>
                 </Grid>
-                <Grid item xs={6}>
+                <Grid size={{ xs: 6 }}>
                   <Typography variant="caption" color="text.secondary">UNIT</Typography>
-                  <Typography variant="body2" fontWeight={600}>{viewItem.unit}</Typography>
+                  <Typography variant="body2" fontWeight={typography.fontWeightSemiBold}>{viewItem.unit}</Typography>
                 </Grid>
-                <Grid item xs={6}>
+                <Grid size={{ xs: 6 }}>
                   <Typography variant="caption" color="text.secondary">CURRENT STOCK</Typography>
                   <Box sx={{ mt: 0.5 }}>{getStockStatusChip(viewItem)}</Box>
                 </Grid>
-                <Grid item xs={6}>
+                <Grid size={{ xs: 6 }}>
                   <Typography variant="caption" color="text.secondary">BARCODE</Typography>
-                  <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>{viewItem.barcode || viewItem.sku}</Typography>
+                  <Typography variant="body2" sx={{ fontFamily: typography.fontFamilyMono, fontSize: typography.mono.fontSize }}>{viewItem.barcode || viewItem.sku}</Typography>
                 </Grid>
-                <Grid item xs={4}>
+                <Grid size={{ xs: 4 }}>
                   <Typography variant="caption" color="text.secondary">MIN THRESHOLD</Typography>
-                  <Typography variant="body2" fontWeight={600}>{viewItem.reorderLevel}</Typography>
+                  <Typography variant="body2" fontWeight={typography.fontWeightSemiBold}>{viewItem.reorderLevel}</Typography>
                 </Grid>
-                <Grid item xs={4}>
+                <Grid size={{ xs: 4 }}>
                   <Typography variant="caption" color="text.secondary">MAX TARGET</Typography>
-                  <Typography variant="body2" fontWeight={600}>{viewItem.maxStockLevel ?? 100}</Typography>
+                  <Typography variant="body2" fontWeight={typography.fontWeightSemiBold}>{viewItem.maxStockLevel ?? 100}</Typography>
                 </Grid>
-                <Grid item xs={4}>
+                <Grid size={{ xs: 4 }}>
                   <Typography variant="caption" color="text.secondary">UNIT</Typography>
-                  <Typography variant="body2" fontWeight={600}>{viewItem.unit}</Typography>
+                  <Typography variant="body2" fontWeight={typography.fontWeightSemiBold}>{viewItem.unit}</Typography>
                 </Grid>
-                <Grid item xs={6}>
+                <Grid size={{ xs: 6 }}>
                   <Typography variant="caption" color="text.secondary">COST PRICE</Typography>
-                  <Typography variant="body2" fontWeight={600}>ETB {Number(viewItem.costPrice ?? 0).toFixed(2)}</Typography>
+                  <Typography variant="body2" fontWeight={typography.fontWeightSemiBold}>ETB {Number(viewItem.costPrice ?? 0).toFixed(2)}</Typography>
                 </Grid>
-                <Grid item xs={6}>
+                <Grid size={{ xs: 6 }}>
                   <Typography variant="caption" color="text.secondary">SELLING PRICE</Typography>
-                  <Typography variant="body2" fontWeight={700} color="#4f46e5">ETB {Number(viewItem.price).toFixed(2)}</Typography>
+                  <Typography variant="body2" fontWeight={typography.fontWeightBold} color="#4f46e5">ETB {Number(viewItem.price).toFixed(2)}</Typography>
                 </Grid>
               </Grid>
 

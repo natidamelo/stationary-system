@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { typography } from '../theme/typography';
 import {
   Box,
   Typography,
@@ -83,7 +84,7 @@ export default function Suppliers() {
     <Box sx={{ animation: 'fadeIn 0.3s ease-out', '@keyframes fadeIn': { from: { opacity: 0 }, to: { opacity: 1 } } }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1, mb: 3 }}>
         <Box>
-          <Typography variant="h5" fontWeight={700} sx={{ letterSpacing: '-0.01em' }}>Suppliers</Typography>
+          <Typography variant="h5" fontWeight={typography.fontWeightBold} sx={{ letterSpacing: typography.pageTitle.letterSpacing }}>Suppliers</Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
             {activeList.length} active {activeList.length === 1 ? 'supplier' : 'suppliers'}
           </Typography>
@@ -112,10 +113,10 @@ export default function Suppliers() {
                 <TableRow key={s.id}>
                   <TableCell>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                      <Avatar sx={{ width: 34, height: 34, borderRadius: 2, bgcolor: '#ecfdf5', color: '#059669', fontSize: '0.85rem', fontWeight: 700 }}>
+                      <Avatar sx={{ width: 34, height: 34, borderRadius: 2, bgcolor: '#ecfdf5', color: '#059669', fontSize: typography.body.fontSize, fontWeight: typography.fontWeightBold }}>
                         {s.name.charAt(0).toUpperCase()}
                       </Avatar>
-                      <Typography variant="body2" fontWeight={600}>{s.name}</Typography>
+                      <Typography variant="body2" fontWeight={typography.fontWeightSemiBold}>{s.name}</Typography>
                     </Box>
                   </TableCell>
                   <TableCell>

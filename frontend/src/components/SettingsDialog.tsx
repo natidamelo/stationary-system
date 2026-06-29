@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { typography } from '../theme/typography';
 import {
   Dialog,
   DialogTitle,
@@ -98,7 +99,7 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}>
-        <Typography variant="h6" component="div" fontWeight={700}>
+        <Typography variant="h6" component="div" fontWeight={typography.fontWeightBold}>
           Settings
         </Typography>
         <IconButton size="small" onClick={onClose} sx={{ color: 'text.secondary' }}>
@@ -115,7 +116,7 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps) {
 
           {/* Stationery Name */}
           <Box>
-            <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>
+            <Typography variant="subtitle2" fontWeight={typography.fontWeightSemiBold} sx={{ mb: 1 }}>
               Stationery Name
             </Typography>
             <TextField
@@ -132,7 +133,7 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps) {
 
           {/* Logo Upload */}
           <Box>
-            <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>
+            <Typography variant="subtitle2" fontWeight={typography.fontWeightSemiBold} sx={{ mb: 1 }}>
               Logo / Photo
             </Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>

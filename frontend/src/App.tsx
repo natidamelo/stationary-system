@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { useAuth } from './context/AuthContext';
 import { useSettings } from './context/SettingsContext';
 import Layout from './components/Layout';
+import { typography } from './theme/typography';
 import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -85,13 +86,17 @@ function App() {
           divider: themeMode === 'dark' ? '#334155' : '#e5e7eb',
         },
         typography: {
-          fontFamily: '"Inter", "SF Pro Display", "Segoe UI", system-ui, -apple-system, sans-serif',
-          h4: { fontWeight: 700, letterSpacing: '-0.02em' },
-          h5: { fontWeight: 700, letterSpacing: '-0.01em' },
-          h6: { fontWeight: 600, letterSpacing: '-0.01em' },
-          subtitle1: { fontWeight: 600 },
-          subtitle2: { fontWeight: 600, letterSpacing: '0.02em' },
-          button: { textTransform: 'none' as const, fontWeight: 600 },
+          fontFamily: typography.fontFamily,
+          h4: typography.display,
+          h5: typography.pageTitle,
+          h6: typography.sectionHeader,
+          subtitle1: typography.bodyBold,
+          subtitle2: { ...typography.bodyBold, fontSize: '0.8rem', letterSpacing: '0.02em' },
+          body1: typography.body,
+          body2: { ...typography.body, fontSize: '0.85rem' }, // standard small body
+          button: typography.button,
+          caption: typography.caption,
+          overline: typography.label,
         },
         shape: {
           borderRadius: 12,

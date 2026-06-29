@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { typography } from '../theme/typography';
 import {
   Box,
   Button,
@@ -79,7 +80,7 @@ export default function Customers() {
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h5" fontWeight={700}>Customers</Typography>
+        <Typography variant="h5" fontWeight={typography.fontWeightBold} sx={{ letterSpacing: typography.pageTitle.letterSpacing }}>Customers</Typography>
         <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpen()}>
           Add Customer
         </Button>

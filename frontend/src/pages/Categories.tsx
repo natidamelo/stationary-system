@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { typography } from '../theme/typography';
 import {
   Box,
   Typography,
@@ -79,7 +80,7 @@ export default function Categories() {
     <Box sx={{ animation: 'fadeIn 0.3s ease-out', '@keyframes fadeIn': { from: { opacity: 0 }, to: { opacity: 1 } } }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1, mb: 3 }}>
         <Box>
-          <Typography variant="h5" fontWeight={700} sx={{ letterSpacing: '-0.01em' }}>Categories</Typography>
+          <Typography variant="h5" fontWeight={typography.fontWeightBold} sx={{ letterSpacing: typography.pageTitle.letterSpacing }}>Categories</Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
             {list.length} {list.length === 1 ? 'category' : 'categories'} total
           </Typography>
@@ -109,7 +110,7 @@ export default function Categories() {
                       <Box sx={{ width: 34, height: 34, borderRadius: 2, bgcolor: '#eef2ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4f46e5', flexShrink: 0 }}>
                         <CategoryRoundedIcon sx={{ fontSize: '1rem' }} />
                       </Box>
-                      <Typography variant="body2" fontWeight={600}>{c.name}</Typography>
+                      <Typography variant="body2" fontWeight={typography.fontWeightSemiBold}>{c.name}</Typography>
                     </Box>
                   </TableCell>
                   <TableCell>
