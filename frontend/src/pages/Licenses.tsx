@@ -38,12 +38,15 @@ type License = {
   startDate: string;
   expiryDate: string;
   status: string;
+  tenantId?: string;
+  tenantName?: string;
 };
 
 type Customer = { id: string; name: string; email: string };
 
 export default function Licenses() {
-  const { computerId } = useAuth();
+  const { computerId, user } = useAuth();
+  const isDealer = user?.role === 'dealer';
   const [licenses, setLicenses] = useState<License[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -66,7 +69,10 @@ export default function Licenses() {
   });
   const [editingLicense, setEditingLicense] = useState<License | null>(null);
 
-  const fetchLicenses = () => api.get<License[]>('/license').then((r) => setLicenses(r.data)).catch(() => setLicenses([]));
+  const fetchLicenses = () =>
+    api.get<License[]>(isDealer ? '/license/dealer-all' : '/license')
+      .then((r) => setLicenses(r.data))
+      .catch(() => setLicenses([]));
   const fetchCustomers = () => api.get<Customer[]>('/customers').then((r) => setCustomers(r.data)).catch(() => setCustomers([]));
 
   useEffect(() => {
@@ -260,6 +266,7 @@ export default function Licenses() {
           <TableHead>
             <TableRow>
               <TableCell>License Key</TableCell>
+              {isDealer && <TableCell>Company / Tenant</TableCell>}
               <TableCell>Customer</TableCell>
               <TableCell>Computer ID</TableCell>
               <TableCell>Start</TableCell>
@@ -272,7 +279,17 @@ export default function Licenses() {
             {licenses.map((l) => (
               <TableRow key={l.id}>
                 <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>{l.licenseKey}</TableCell>
-                <TableCell>{l.customerName}<br /><Typography variant="caption" color="text.secondary">{l.customerEmail}</Typography></TableCell>
+                {isDealer && (
+                  <TableCell>
+                    <Typography variant="body2" fontWeight={600}>{l.tenantName || '—'}</Typography>
+                  </TableCell>
+                )}
+                <TableCell>
+                  {l.customerName
+                    ? <>{l.customerName}<br /><Typography variant="caption" color="text.secondary">{l.customerEmail}</Typography></>
+                    : <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic' }}>Tenant license</Typography>
+                  }
+                </TableCell>
                 <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>{l.computerId.slice(0, 8)}...</TableCell>
                 <TableCell>{formatDate(l.startDate)}</TableCell>
                 <TableCell>{formatDate(l.expiryDate)}</TableCell>

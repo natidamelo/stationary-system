@@ -35,6 +35,15 @@ export class LicenseController {
     return this.licenseService.getLicenseInfo(computerId || '', user.tenantId);
   }
 
+  @Get('dealer-all')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('dealer')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List all licenses across all tenants (dealer only)' })
+  async findAllAcrossTenants() {
+    return this.licenseService.findAllAcrossTenants();
+  }
+
   @Get()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('dealer', 'admin')

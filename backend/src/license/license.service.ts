@@ -370,6 +370,24 @@ export class LicenseService {
     return docs.map((d: any) => this.toLicense(d));
   }
 
+  async findAllAcrossTenants() {
+    const docs = await this.licenseModel
+      .find({})
+      .populate('customerId')
+      .populate('tenantId')
+      .sort({ createdAt: -1 })
+      .lean();
+    return docs.map((d: any) => {
+      const base = this.toLicense(d);
+      const tenant = d.tenantId as any;
+      return {
+        ...base,
+        tenantId: tenant?._id?.toString(),
+        tenantName: tenant?.name || null,
+      };
+    });
+  }
+
   async suspend(tenantId: string, licenseKey: string) {
     const tid = toObjectId(tenantId);
     if (!tid) throw new BadRequestException('Invalid tenant');
