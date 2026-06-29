@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { typography } from '../theme/typography';
 import {
   Box,
   Typography,
@@ -188,7 +189,7 @@ export default function StoreTransfers() {
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
         <Box>
-          <Typography variant="h5" fontWeight={700} sx={{ letterSpacing: '-0.01em' }}>Store Transfers</Typography>
+          <Typography variant="h5" fontWeight={typography.fontWeightBold} sx={{ letterSpacing: typography.pageTitle.letterSpacing }}>Store Transfers</Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
             Transfer inventory stock between store locations and view transfer history.
           </Typography>
@@ -200,7 +201,7 @@ export default function StoreTransfers() {
           sx={{
             background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
             textTransform: 'none',
-            fontWeight: 600,
+            fontWeight: typography.fontWeightSemiBold,
             borderRadius: 2,
             px: 3,
             py: 1,
@@ -233,7 +234,7 @@ export default function StoreTransfers() {
         <TableContainer>
           <Table>
             <TableHead>
-              <TableRow sx={{ '& th': { fontWeight: 700, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.secondary' } }}>
+              <TableRow sx={{ '& th': { fontWeight: typography.fontWeightBold, fontSize: typography.fontSizeXs, textTransform: 'uppercase', letterSpacing: typography.label.letterSpacing, color: 'text.secondary' } }}>
                 <TableCell>Transfer Number</TableCell>
                 <TableCell>Source Store</TableCell>
                 <TableCell>Destination Store</TableCell>
@@ -254,20 +255,20 @@ export default function StoreTransfers() {
               ) : (
                 filteredTransfers.map((t) => (
                   <TableRow key={t.id} hover sx={{ '&:hover': { bgcolor: 'action.hover' } }}>
-                    <TableCell sx={{ fontWeight: 600 }}>{t.transferNumber}</TableCell>
+                    <TableCell sx={{ fontWeight: typography.fontWeightSemiBold }}>{t.transferNumber}</TableCell>
                     <TableCell>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Typography variant="body2" fontWeight={500}>{t.fromStore?.name || '-'}</Typography>
+                        <Typography variant="body2" fontWeight={typography.fontWeightMedium}>{t.fromStore?.name || '-'}</Typography>
                         {t.fromStore?.location && (
-                          <Chip label={t.fromStore.location} size="small" sx={{ fontWeight: 600, fontSize: '0.65rem', bgcolor: '#e0e7ff', color: '#4f46e5' }} />
+                          <Chip label={t.fromStore.location} size="small" sx={{ fontWeight: typography.fontWeightSemiBold, fontSize: typography.fontSizeXs, bgcolor: '#e0e7ff', color: '#4f46e5' }} />
                         )}
                       </Box>
                     </TableCell>
                     <TableCell>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Typography variant="body2" fontWeight={500}>{t.toStore?.name || '-'}</Typography>
+                        <Typography variant="body2" fontWeight={typography.fontWeightMedium}>{t.toStore?.name || '-'}</Typography>
                         {t.toStore?.location && (
-                          <Chip label={t.toStore.location} size="small" sx={{ fontWeight: 600, fontSize: '0.65rem', bgcolor: '#fce7f3', color: '#db2777' }} />
+                          <Chip label={t.toStore.location} size="small" sx={{ fontWeight: typography.fontWeightSemiBold, fontSize: typography.fontSizeXs, bgcolor: '#fce7f3', color: '#db2777' }} />
                         )}
                       </Box>
                     </TableCell>
@@ -305,7 +306,7 @@ export default function StoreTransfers() {
         fullWidth
         PaperProps={{ sx: { borderRadius: 3 } }}
       >
-        <DialogTitle sx={{ fontWeight: 700, display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}>
+        <DialogTitle sx={{ fontWeight: typography.fontWeightBold, display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}>
           New Store Transfer
           <IconButton size="small" onClick={() => setModal(false)}>
             <CloseIcon fontSize="small" />
@@ -316,7 +317,7 @@ export default function StoreTransfers() {
 
           <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, mb: 3 }}>
             <Box>
-              <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>
+              <Typography variant="body2" fontWeight={typography.fontWeightSemiBold} sx={{ mb: 0.5 }}>
                 Source Store <span style={{ color: '#ef4444' }}>*</span>
               </Typography>
               <TextField
@@ -337,7 +338,7 @@ export default function StoreTransfers() {
               </TextField>
             </Box>
             <Box>
-              <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>
+              <Typography variant="body2" fontWeight={typography.fontWeightSemiBold} sx={{ mb: 0.5 }}>
                 Destination Store <span style={{ color: '#ef4444' }}>*</span>
               </Typography>
               <TextField
@@ -360,7 +361,7 @@ export default function StoreTransfers() {
           </Box>
 
           {/* Notes */}
-          <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>Notes / Reason for Transfer</Typography>
+          <Typography variant="body2" fontWeight={typography.fontWeightSemiBold} sx={{ mb: 0.5 }}>Notes / Reason for Transfer</Typography>
           <TextField
             fullWidth
             multiline
@@ -374,7 +375,7 @@ export default function StoreTransfers() {
 
           {/* Transfer Items */}
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
-            <Typography variant="subtitle2" fontWeight={700} sx={{ textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em' }}>
+            <Typography variant="subtitle2" fontWeight={typography.fontWeightBold} sx={{ textTransform: 'uppercase', fontSize: typography.fontSizeXs, letterSpacing: typography.label.letterSpacing }}>
               Transfer Items <span style={{ color: '#ef4444' }}>*</span>
             </Typography>
             <Box sx={{ display: 'flex', gap: 1 }}>
@@ -390,7 +391,7 @@ export default function StoreTransfers() {
           <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
             <Table size="small">
               <TableHead>
-                <TableRow sx={{ '& th': { fontWeight: 700, fontSize: '0.7rem', textTransform: 'uppercase', color: 'text.secondary' } }}>
+                <TableRow sx={{ '& th': { fontWeight: typography.fontWeightBold, fontSize: typography.fontSizeXs, textTransform: 'uppercase', letterSpacing: typography.label.letterSpacing, color: 'text.secondary' } }}>
                   <TableCell>Product</TableCell>
                   <TableCell align="right" sx={{ width: 100 }}>Transfer Qty</TableCell>
                   <TableCell align="center" sx={{ width: 60 }}>Actions</TableCell>
@@ -445,7 +446,7 @@ export default function StoreTransfers() {
             sx={{
               background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
               textTransform: 'none',
-              fontWeight: 600,
+              fontWeight: typography.fontWeightSemiBold,
               borderRadius: 2,
               px: 3,
               '&:hover': { background: 'linear-gradient(135deg, #4338ca, #6d28d9)' },
@@ -467,7 +468,7 @@ export default function StoreTransfers() {
       >
         {selectedTransfer && (
           <>
-            <DialogTitle sx={{ fontWeight: 700, display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}>
+            <DialogTitle sx={{ fontWeight: typography.fontWeightBold, display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}>
               Transfer Details — {selectedTransfer.transferNumber}
               <IconButton size="small" onClick={() => setViewModal(false)}>
                 <CloseIcon fontSize="small" />
@@ -477,11 +478,11 @@ export default function StoreTransfers() {
               <Box sx={{ display: 'flex', gap: 4, mb: 3, flexWrap: 'wrap' }}>
                 <Box>
                   <Typography variant="caption" color="text.secondary">Source Store</Typography>
-                  <Typography variant="body2" fontWeight={600}>{selectedTransfer.fromStore?.name || '-'}</Typography>
+                  <Typography variant="body2" fontWeight={typography.fontWeightSemiBold}>{selectedTransfer.fromStore?.name || '-'}</Typography>
                 </Box>
                 <Box>
                   <Typography variant="caption" color="text.secondary">Destination Store</Typography>
-                  <Typography variant="body2" fontWeight={600}>{selectedTransfer.toStore?.name || '-'}</Typography>
+                  <Typography variant="body2" fontWeight={typography.fontWeightSemiBold}>{selectedTransfer.toStore?.name || '-'}</Typography>
                 </Box>
                 <Box>
                   <Typography variant="caption" color="text.secondary">Status</Typography>
@@ -490,8 +491,8 @@ export default function StoreTransfers() {
                       label={selectedTransfer.status === 'completed' ? 'Completed' : 'Pending'}
                       size="small"
                       sx={{
-                        fontWeight: 600,
-                        fontSize: '0.7rem',
+                        fontWeight: typography.fontWeightSemiBold,
+                        fontSize: typography.fontSizeXs,
                         mt: 0.25,
                         bgcolor: selectedTransfer.status === 'completed' ? '#dcfce7' : '#fef9c3',
                         color: selectedTransfer.status === 'completed' ? '#16a34a' : '#ca8a04',
@@ -501,11 +502,11 @@ export default function StoreTransfers() {
                 </Box>
                 <Box>
                   <Typography variant="caption" color="text.secondary">Transferred By</Typography>
-                  <Typography variant="body2" fontWeight={600}>{selectedTransfer.createdBy?.fullName || 'System'}</Typography>
+                  <Typography variant="body2" fontWeight={typography.fontWeightSemiBold}>{selectedTransfer.createdBy?.fullName || 'System'}</Typography>
                 </Box>
                 <Box>
                   <Typography variant="caption" color="text.secondary">Date</Typography>
-                  <Typography variant="body2" fontWeight={600}>
+                  <Typography variant="body2" fontWeight={typography.fontWeightSemiBold}>
                     {new Date(selectedTransfer.createdAt).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })}
                   </Typography>
                 </Box>
@@ -523,7 +524,7 @@ export default function StoreTransfers() {
               <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
                 <Table size="small">
                   <TableHead>
-                    <TableRow sx={{ '& th': { fontWeight: 700, fontSize: '0.7rem', textTransform: 'uppercase', color: 'text.secondary' } }}>
+                    <TableRow sx={{ '& th': { fontWeight: typography.fontWeightBold, fontSize: typography.fontSizeXs, textTransform: 'uppercase', letterSpacing: typography.label.letterSpacing, color: 'text.secondary' } }}>
                       <TableCell>Item Name</TableCell>
                       <TableCell>SKU</TableCell>
                       <TableCell align="right">Qty Transferred</TableCell>
@@ -532,13 +533,13 @@ export default function StoreTransfers() {
                   <TableBody>
                     {selectedTransfer.lines.map((l, index) => (
                       <TableRow key={index}>
-                        <TableCell sx={{ fontWeight: 500 }}>{l.item?.name || 'Unknown Item'}</TableCell>
+                        <TableCell sx={{ fontWeight: typography.fontWeightMedium }}>{l.item?.name || 'Unknown Item'}</TableCell>
                         <TableCell>{l.item?.sku || '-'}</TableCell>
                         <TableCell align="right">
                           <Chip
                             label={l.quantity}
                             size="small"
-                            sx={{ fontWeight: 600, fontSize: '0.75rem', bgcolor: '#dcfce7', color: '#16a34a' }}
+                            sx={{ fontWeight: typography.fontWeightSemiBold, fontSize: typography.fontSizeXs, bgcolor: '#dcfce7', color: '#16a34a' }}
                           />
                         </TableCell>
                       </TableRow>
