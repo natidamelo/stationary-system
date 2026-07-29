@@ -687,15 +687,24 @@ export default function Reception() {
               />
               <TextField label="Notes (optional)" value={notes} onChange={(e) => setNotes(e.target.value)} fullWidth sx={{ mb: 2 }} />
               <Box sx={{ 
-                p: 2, 
+                p: 2.5, 
                 borderRadius: 3, 
-                bgcolor: 'rgba(79, 70, 229, 0.05)', 
-                border: '1px solid rgba(79, 70, 229, 0.1)',
+                background: computedTotal > 0
+                  ? 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)'
+                  : 'linear-gradient(135deg, #6b7280 0%, #9ca3af 100%)',
                 mb: 2,
-                boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)'
+                boxShadow: computedTotal > 0
+                  ? '0 6px 24px rgba(79, 70, 229, 0.45)'
+                  : '0 4px 12px rgba(0,0,0,0.15)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
               }}>
-                <Typography variant="h6" align="right" sx={{ mb: 1, color: 'primary.main', fontWeight: 700, letterSpacing: -0.5 }}>
-                  Total: {computedTotal.toFixed(2)} birr
+                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.8)', fontWeight: 600, letterSpacing: 0.5, textTransform: 'uppercase', fontSize: '0.75rem' }}>
+                  Order Total
+                </Typography>
+                <Typography variant="h5" sx={{ color: '#fff', fontWeight: 800, letterSpacing: -1 }}>
+                  {computedTotal.toFixed(2)} <span style={{ fontSize: '0.75em', fontWeight: 500, opacity: 0.85 }}>birr</span>
                 </Typography>
                 
                 {sellError && (
