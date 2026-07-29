@@ -635,7 +635,7 @@ export default function Reception() {
                   </Fade>
                 ))}
               </Box>
-              <Box sx={{ display: 'flex', gap: 1, mb: 3 }}>
+              <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
                 <Button 
                   variant="outlined" 
                   size="small" 
@@ -654,6 +654,29 @@ export default function Reception() {
                 >
                   Add Service Row
                 </Button>
+              </Box>
+
+              {/* ── Total Amount – always visible ── */}
+              <Box sx={{ 
+                p: 2.5, 
+                borderRadius: 3, 
+                background: computedTotal > 0
+                  ? 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)'
+                  : 'linear-gradient(135deg, #6b7280 0%, #9ca3af 100%)',
+                mb: 2,
+                boxShadow: computedTotal > 0
+                  ? '0 6px 24px rgba(79, 70, 229, 0.45)'
+                  : '0 4px 12px rgba(0,0,0,0.15)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}>
+                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.8)', fontWeight: 600, letterSpacing: 0.5, textTransform: 'uppercase', fontSize: '0.75rem' }}>
+                  Order Total
+                </Typography>
+                <Typography variant="h5" sx={{ color: '#fff', fontWeight: 800, letterSpacing: -1 }}>
+                  {computedTotal.toFixed(2)} <span style={{ fontSize: '0.75em', fontWeight: 500, opacity: 0.85 }}>birr</span>
+                </Typography>
               </Box>
               <FormControl fullWidth sx={{ mb: 2 }}>
                 <InputLabel>Payment Method</InputLabel>
@@ -686,59 +709,38 @@ export default function Reception() {
                 sx={{ mb: 2 }}
               />
               <TextField label="Notes (optional)" value={notes} onChange={(e) => setNotes(e.target.value)} fullWidth sx={{ mb: 2 }} />
-              <Box sx={{ 
-                p: 2.5, 
-                borderRadius: 3, 
-                background: computedTotal > 0
-                  ? 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)'
-                  : 'linear-gradient(135deg, #6b7280 0%, #9ca3af 100%)',
-                mb: 2,
-                boxShadow: computedTotal > 0
-                  ? '0 6px 24px rgba(79, 70, 229, 0.45)'
-                  : '0 4px 12px rgba(0,0,0,0.15)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-              }}>
-                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.8)', fontWeight: 600, letterSpacing: 0.5, textTransform: 'uppercase', fontSize: '0.75rem' }}>
-                  Order Total
-                </Typography>
-                <Typography variant="h5" sx={{ color: '#fff', fontWeight: 800, letterSpacing: -1 }}>
-                  {computedTotal.toFixed(2)} <span style={{ fontSize: '0.75em', fontWeight: 500, opacity: 0.85 }}>birr</span>
-                </Typography>
-                
-                {sellError && (
-                  <Fade in>
-                    <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>{sellError}</Alert>
-                  </Fade>
-                )}
 
-                <Button 
-                  variant="contained" 
-                  fullWidth 
-                  onClick={sell} 
-                  disabled={selling || computedTotal <= 0}
-                  size="large"
-                  sx={{ 
-                    py: 1.5, 
-                    borderRadius: 2, 
-                    fontSize: '1.1rem',
-                    fontWeight: 700,
-                    textTransform: 'none',
-                    background: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)',
-                    boxShadow: '0 4px 14px 0 rgba(79, 70, 229, 0.39)',
-                    '&:hover': {
-                      background: 'linear-gradient(135deg, #4338ca 0%, #4f46e5 100%)',
-                      boxShadow: '0 6px 20px rgba(79, 70, 229, 0.23)',
-                    },
-                    '&.Mui-disabled': {
-                      background: 'rgba(0,0,0,0.12)',
-                    }
-                  }}
-                >
-                  {selling ? 'Processing Sale...' : 'Complete Sale'}
-                </Button>
-              </Box>
+              {sellError && (
+                <Fade in>
+                  <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>{sellError}</Alert>
+                </Fade>
+              )}
+
+              <Button 
+                variant="contained" 
+                fullWidth 
+                onClick={sell} 
+                disabled={selling || computedTotal <= 0}
+                size="large"
+                sx={{ 
+                  py: 1.5, 
+                  borderRadius: 2, 
+                  fontSize: '1.1rem',
+                  fontWeight: 700,
+                  textTransform: 'none',
+                  background: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)',
+                  boxShadow: '0 4px 14px 0 rgba(79, 70, 229, 0.39)',
+                  '&:hover': {
+                    background: 'linear-gradient(135deg, #4338ca 0%, #4f46e5 100%)',
+                    boxShadow: '0 6px 20px rgba(79, 70, 229, 0.23)',
+                  },
+                  '&.Mui-disabled': {
+                    background: 'rgba(0,0,0,0.12)',
+                  }
+                }}
+              >
+                {selling ? 'Processing Sale...' : 'Complete Sale'}
+              </Button>
             </CardContent>
           </Card>
         </Grid>
